@@ -19,4 +19,7 @@ setup(
         # 'Programming Language :: Python :: 3.4',
         ],
     packages=['assay'],
+    entry_points = {
+        'console_scripts': ['assay=assay.command:main'],
+        },
     )
