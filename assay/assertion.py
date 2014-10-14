@@ -1,7 +1,7 @@
 """Routines to deal with the Python assert statement."""
 
 import types
-from dis import dis
+# from dis import dis
 
 # assert_eq = 'k\x02\x00s?\x00t\x03\x00\x82\x01\x00d\x00\x00S'
 # return_eq = 'k\x02\x00s?\x00f\x02\x00S\x00\x00d\x00\x00S'
@@ -22,8 +22,7 @@ def rerun_failing_assert(test):
         c.co_firstlineno, c.co_lnotab, c.co_freevars, c.co_cellvars)
     test.func_code = new_func_code
     a, b = test()
-    print 'BUT', repr(a)
-    print ' !=', repr(b)
+    return 'BUT {!r}\n   != {!r}'.format(a, b)
 
 """
   1           0 LOAD_CONST               3 (2)

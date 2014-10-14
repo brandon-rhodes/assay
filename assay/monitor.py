@@ -1,5 +1,8 @@
 """Monitor a package for changes and run its tests when it changes."""
 
+from __future__ import print_function
+
+import sys
 import time
 from .assertion import rerun_failing_assert
 from .importation import import_module, get_directory_of
@@ -20,28 +23,40 @@ def watch_loop(module_name):
     path = launch_sync(get_directory_of, module_name)
     if path is not None:
         raise NotImplementedError('cannot yet introspect full packages')
-    data = launch_sync(run_tests_of, module_name)
-    print data
+    launch_sync(run_tests_of, module_name)
 
 def run_tests_of(name):
+    write = sys.stderr.write
+    flush = sys.stderr.flush
     module = import_module(name)
     d = module.__dict__
     good_names = sorted(k for k in d if k.startswith('test_'))
     candidates = [d[k] for k in good_names]
     tests = [t for t in candidates if t.__module__ == name]
-    print '-' * 72
+    reports = []
     for t in tests:
-        if t.func_code.co_argcount:
-            continue
+        code = t.func_code
+        if code.co_argcount:
+            continue  # TODO: support the idea of fixtures
         try:
             t()
         except AssertionError as e:
-            rerun_failing_assert(t)
+            message = rerun_failing_assert(t)
         except Exception as e:
-            print
-            print t.__name__
-            print e.__class__.__name__, e
-    return len(tests)
+            message = '{}: {}'.format(e.__class__.__name__, e)
+            write(b'E')
+        else:
+            message = None
+            write(b'.')
+        flush()
+        if message is not None:
+            reports.append('{}:{}\n  {}()\n  {}'.format(
+                code.co_filename, code.co_firstlineno, t.__name__, message))
+    print()
+    for report in reports:
+        print()
+        print(report)
+    return
     for tn in test_names:
         test = d[tn]
         print(test.__module__)
