@@ -4,6 +4,7 @@ import os
 import pickle
 import sys
 from functools import wraps
+from importlib import import_module
 
 class TransformIntoWorker(BaseException):
     """Pop everything off of the stack and become a worker."""
@@ -62,8 +63,13 @@ class Worker(object):
         """This is implemented as a special case in worker_task(), below."""
 
     @remote
-    def add(a, b):
-        return a + b
+    def list_modules():
+        return list(sys.modules)
+
+    @remote
+    def import_modules(names):
+        for name in names:
+            import_module(name)
 
 def worker_task(pipes):
     """Run remote functions until being told to exit."""

@@ -36,10 +36,12 @@ def watch_loop(module_name):
     print('Learning dependencies')
     t0 = time.time()
     assert worker.push() == 'worker process pushed'
-    print(worker.add(100, 222))
+    before = set(worker.list_modules())
+    worker.import_modules(['json'])
+    after = set(worker.list_modules())
+    print(after - before)
     assert worker.pop() == 'worker process popped'
     print(time.time() - t0)
-    #assert worker.pop() == 'worker process stopping'
     launch_sync(run_tests_of, module_name)
 
 def fetch_modules():
