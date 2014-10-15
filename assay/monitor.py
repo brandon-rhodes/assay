@@ -2,11 +2,18 @@
 
 from __future__ import print_function
 
+import pickle
 import sys
 import time
 from .assertion import rerun_failing_assert
 from .importation import import_module, get_directory_of
 from .launch import launch_sync
+from .worker import Worker
+
+def f():
+    pass
+
+print(pickle.dumps(f))
 
 python3 = (sys.version_info.major >= 3)
 
@@ -25,14 +32,19 @@ def watch_loop(module_name):
     path = launch_sync(get_directory_of, module_name)
     if path is not None:
         raise NotImplementedError('cannot yet introspect full packages')
+    print('Learning dependencies')
+    worker = Worker()
     launch_sync(run_tests_of, module_name)
 
+def fetch_modules():
+    return set(sys.modules)
+
 def run_tests_of(name):
-    if hasattr(sys.stderr, 'buffer'):
+    flush = sys.stderr.flush
+    if python3:
         write = sys.stderr.buffer.write
     else:
         write = sys.stderr.write
-    flush = sys.stderr.flush
 
     module = import_module(name)
     d = module.__dict__
