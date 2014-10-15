@@ -56,6 +56,12 @@ class Worker(object):
 
         assert pickle.load(self.from_child) == 'ok'
 
+    def __enter__(self):
+        assert self.push() == 'worker process pushed'
+
+    def __exit__(self, a,b,c):
+        assert self.pop() == 'worker process popped'
+
     @remote
     def push():
         child_pid = os.fork()
@@ -67,6 +73,10 @@ class Worker(object):
     @remote
     def pop():
         """This is implemented as a special case in worker_task(), below."""
+
+    @remote
+    def __call__(function, *args, **kw):
+        return function(*args, **kw)
 
     @remote
     def list_modules():

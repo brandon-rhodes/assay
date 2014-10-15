@@ -2,47 +2,31 @@
 
 from __future__ import print_function
 
-import pickle
 import sys
 import time
 from .assertion import rerun_failing_assert
 from .importation import import_module, get_directory_of
-from .launch import launch_sync
 from .worker import Worker
 
 def f():
     pass
 
-print(pickle.dumps(f))
-
 python3 = (sys.version_info.major >= 3)
 
 def main_loop(name):
-    """Survive hard import errors, like SyntaxError, and try again forever."""
-    while True:
-        # try:
-        watch_loop(name)
-        # except Exception as e:
-        #     print('Fatal: {}'.format(e))
-        #     print('Edit your code and Assay will try again')
-        break
-        time.sleep(100000)
-
-def watch_loop(module_name):
-    path = launch_sync(get_directory_of, module_name)
-    if path is not None:
-        raise NotImplementedError('cannot yet introspect full packages')
     worker = Worker()
-    print('Learning dependencies')
-    t0 = time.time()
-    assert worker.push() == 'worker process pushed'
-    before = set(worker.list_modules())
-    worker.import_modules(['json'])
-    after = set(worker.list_modules())
-    print(after - before)
-    assert worker.pop() == 'worker process popped'
-    print(time.time() - t0)
-    launch_sync(run_tests_of, module_name)
+    while True:
+        print('Learning dependencies')
+        with worker:
+        # path = worker(get_directory_of, module_name)
+        # if path is not None:
+        #     raise NotImplementedError('cannot yet introspect full packages')
+            before = set(worker(fetch_modules))
+            worker.import_modules([name])
+            after = set(worker(fetch_modules))
+            print(after - before)
+            worker(run_tests_of, name)
+        break
 
 def fetch_modules():
     return set(sys.modules)
