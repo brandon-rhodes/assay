@@ -12,75 +12,55 @@ class op(object):
 for i, symbol in enumerate(dis.opname):
     setattr(op, symbol.lower(), i)
 
-class CompareError(Exception):
+class AssayCompareError(Exception):
     def __init__(self, a, b, symbol):
-        self.symbol = symbol
         self.a = a
         self.b = b
+        self.symbol = symbol
 
-additional_consts = dis.cmp_op + (CompareError,)
-real_bytes = bytes
+additional_consts = dis.cmp_op + (AssayCompareError,)
 
 def rerun_failing_assert(test, code):
-    dis.dis(code)
+    """Re-run test() after rewriting its asserts for introspection."""
 
-    original_code = code.co_code
-
-    if isinstance(original_code, str):
-        bytes = [ord(b) for b in original_code]  # Python 2
+    if python3:
+        bytecode = list(code.co_code)
     else:
-        bytes = list(original_code)              # Python 3
+        bytecode = [ord(b) for b in code.co_code]
 
     consts = code.co_consts
     cmp_base = len(consts)
     consts = consts + additional_consts
-    # error_index = code.co_names.index('AssertionError')
-    # error_lsb, error_msb = divmod(error_index, 256)
-    exception_msb, exception_lsb = divmod(consts.index(CompareError), 256)
+    exception_msb, exception_lsb = divmod(consts.index(AssayCompareError), 256)
     stacksize = code.co_stacksize + 2
 
     i = 0
-    original_length = len(bytes)
+    original_length = len(bytecode)
 
     while i < original_length:
-        if bytes[i] == op.compare_op:
+        if bytecode[i] == op.compare_op:
             i += 3
-            if bytes[i] == op.pop_jump_if_true:
+            if bytecode[i] == op.pop_jump_if_true:
                 i += 3
-                if bytes[i] == op.load_global:  # TODO: check global
+                if bytecode[i] == op.load_global:  # TODO: check global
                     i += 3
-                    if bytes[i] == op.raise_varargs:
+                    if bytecode[i] == op.raise_varargs:
                         i += 3
-                        print('*'*20, len(bytes))
-                        insert_handler(bytes, i - 12, cmp_base,
-                                       exception_lsb, exception_msb)
-                        print('*'*20, len(bytes))
+                        install_handler(bytecode, i - 12, cmp_base,
+                                        exception_lsb, exception_msb)
         else:
-            i += 1 if (bytes[i] < dis.HAVE_ARGUMENT) else 3
-
-    #new_code
+            i += 1 if (bytecode[i] < dis.HAVE_ARGUMENT) else 3
 
     c = code
+    code = bytes(bytecode) if python3 else ''.join(chr(b) for b in bytecode)
 
-    new_code = real_bytes(bytes) if python3 else ''.join(
-        chr(byte) for byte in bytes)
-
-    print(repr(new_code))
-
-    #    argcount, kwonlyargcount, nlocals, stacksize, flags, codestring,
-    # |        constants, names, varnames, filename, name, firstlineno,
-    # |        lnotab[, freevars[, cellvars]])
     if python3:
         argcounts = (c.co_argcount, c.co_kwonlyargcount)
     else:
         argcounts = (c.co_argcount,)
-    # print((
-    #     c.co_argcount, c.co_nlocals, stacksize, c.co_flags, new_code,
-    #     consts, c.co_names, c.co_varnames, c.co_filename, c.co_name,
-    #     c.co_firstlineno, c.co_lnotab, c.co_freevars, c.co_cellvars))
 
     new_func_code = types.CodeType(*argcounts + (
-        c.co_nlocals, stacksize, c.co_flags, new_code, consts, c.co_names,
+        c.co_nlocals, stacksize, c.co_flags, code, consts, c.co_names,
         c.co_varnames, c.co_filename, c.co_name, c.co_firstlineno, c.co_lnotab,
         c.co_freevars, c.co_cellvars))
     if python3:
@@ -92,31 +72,31 @@ def rerun_failing_assert(test, code):
 
     try:
         test()
-    except CompareError as e:
+    except AssayCompareError as e:
         return 'BUT {!r}\n   {} {!r}'.format(e.a, e.symbol, e.b)
     else:
         return 'drat, no exception was raised the second time'
 
-def insert_handler(bytes, i, cmp_base, exception_lsb, exception_msb):
+def install_handler(bytecode, i, cmp_base, exception_lsb, exception_msb):
     """The index `i` should point at the COMPARE_OP of an assert."""
 
-    base = len(bytes)
-    operator = bytes[i+1]
-    jump_back_lsb = bytes[i+4]
-    jump_back_msb = bytes[i+5]
+    base = len(bytecode)
+    operator = bytecode[i+1]
+    jump_back_lsb = bytecode[i+4]
+    jump_back_msb = bytecode[i+5]
 
     jump_to_handler_msb, jump_to_handler_lsb = divmod(base, 256)
-    bytes[i:i+3] = [op.jump_absolute, jump_to_handler_lsb, jump_to_handler_msb]
+    bytecode[i:i+3] = [op.jump_absolute, jump_to_handler_lsb, jump_to_handler_msb]
 
     reporting_msb, reporting_lsb = divmod(base + 14 - 2 * python3, 256)
     symbol_msb, symbol_lsb = divmod(cmp_base + operator, 256)
 
     # Duplicate the two operands of "compare_op" then do comparison.
 
-    bytes.extend(
+    bytecode.extend(
         [op.dup_top_two] if python3 else [op.dup_topx, 2, 0]
         )
-    bytes.extend([
+    bytecode.extend([
         op.compare_op, operator, 0,
         op.pop_jump_if_false, reporting_lsb, reporting_msb,
 
