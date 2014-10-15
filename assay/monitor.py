@@ -8,6 +8,8 @@ from .assertion import rerun_failing_assert
 from .importation import import_module, get_directory_of
 from .launch import launch_sync
 
+python3 = (sys.version_info.major >= 3)
+
 def main_loop(name):
     """Survive hard import errors, like SyntaxError, and try again forever."""
     while True:
@@ -41,7 +43,7 @@ def run_tests_of(name):
 
     reports = []
     for t in tests:
-        code = getattr(t, 'func_code', None) or t.__code__
+        code = t.__code__ if python3 else t.func_code
         if code.co_argcount:
             continue  # TODO: support the idea of fixtures
 
