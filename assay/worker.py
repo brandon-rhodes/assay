@@ -78,14 +78,14 @@ class Worker(object):
     def __call__(function, *args, **kw):
         return function(*args, **kw)
 
-    @remote
-    def list_modules():
-        return list(sys.modules)
+    # @remote
+    # def list_modules():
+    #     return list(sys.modules)
 
-    @remote
-    def import_modules(names):
-        for name in names:
-            import_module(name)
+    # @remote
+    # def import_modules(names):
+    #     for name in names:
+    #         import_module(name)
 
 def worker_task(pipes):
     """Run remote functions until being told to exit."""
