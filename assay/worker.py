@@ -1,10 +1,16 @@
 """A worker process that can respond to commands."""
 
 import os
-import pickle
 import sys
 from functools import wraps
 from importlib import import_module
+
+python3 = (sys.version_info.major >= 3)
+
+if python3:
+    import pickle
+else:
+    import cPickle as pickle
 
 class TransformIntoWorker(BaseException):
     """Pop everything off of the stack and become a worker."""
