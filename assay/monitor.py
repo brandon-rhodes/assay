@@ -13,37 +13,55 @@ def f():
 
 python3 = (sys.version_info.major >= 3)
 
-def main_loop(name):
+def main_loop(module_name):
     worker = Worker()
+
+    print('Running sanity check')
+
+    with worker:
+        path = worker(get_directory_of, module_name)
+
+    if path is not None:
+        raise NotImplementedError('cannot yet introspect full packages')
+
     while True:
         print('Learning dependencies')
         with worker:
-            # path = worker(get_directory_of, module_name)
-            # if path is not None:
-            #     raise NotImplementedError('cannot yet introspect full packages')
-            before = set(worker(fetch_modules))
-            #worker.import_modules([name])
-            after = set(worker(fetch_modules))
+            before = set(worker(list_modules))
+            worker(import_modules, [module_name])
+            after = set(worker(list_modules))
             print(after - before)
-            worker(run_tests_of, name)
+            worker(run_tests_of, module_name)
+        print('Loading dependencies')
+        dependencies = after - before - {module_name}
+        dependencies = [d for d in dependencies if not d.startswith('sky')]
+        print(dependencies)
+        with worker:
+            worker(import_modules, dependencies)
+            print('Running tests')
+            worker(run_tests_of, module_name)
         break
 
-def fetch_modules():
+def list_modules():
     return list(sys.modules)
 
-def run_tests_of(name):
+def import_modules(names):
+    for name in names:
+        import_module(name)
+
+def run_tests_of(module_name):
     flush = sys.stderr.flush
     if python3:
         write = sys.stderr.buffer.write
     else:
         write = sys.stderr.write
 
-    module = import_module(name)
+    module = import_module(module_name)
     d = module.__dict__
 
     good_names = sorted(k for k in d if k.startswith('test_'))
     candidates = [d[k] for k in good_names]
-    tests = [t for t in candidates if t.__module__ == name]
+    tests = [t for t in candidates if t.__module__ == module_name]
 
     reports = []
     for t in tests:
