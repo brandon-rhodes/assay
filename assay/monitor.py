@@ -18,17 +18,10 @@ def main_loop(name):
     while True:
         print('Learning dependencies')
         with worker:
-        # path = worker(get_directory_of, module_name)
-        # if path is not None:
-        #     raise NotImplementedError('cannot yet introspect full packages')
-            t0 = time.time()
-            # for i in range(1000):
+            # path = worker(get_directory_of, module_name)
+            # if path is not None:
+            #     raise NotImplementedError('cannot yet introspect full packages')
             before = set(worker(fetch_modules))
-            # print((time.time() - t0) / 1000.0)
-            t0 = time.time()
-            # for i in range(1000):
-            #     before = set(worker.list_modules())
-            # print((time.time() - t0) / 1000.0)
             #worker.import_modules([name])
             after = set(worker(fetch_modules))
             print(after - before)

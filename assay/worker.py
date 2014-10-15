@@ -2,8 +2,6 @@
 
 import os
 import sys
-from functools import wraps
-from importlib import import_module
 
 python3 = (sys.version_info.major >= 3)
 
@@ -13,23 +11,7 @@ else:
     import cPickle as pickle
 
 class TransformIntoWorker(BaseException):
-    """Pop everything off of the stack and become a worker."""
-
-remote_functions = {}
-
-def remote(function):
-    """Mark a Worker method so that it runs in the forked worker."""
-
-    name = function.__name__
-    remote_functions[name] = function
-
-    @wraps(function)
-    def wrapper(self, *args, **kw):
-        pickle.dump((name, args, kw), self.to_child)
-        self.to_child.flush()
-        return pickle.load(self.from_child)
-
-    return wrapper
+    """Tell main() to pop everything off of the stack and become a worker."""
 
 class Worker(object):
 
@@ -56,36 +38,30 @@ class Worker(object):
 
         assert pickle.load(self.from_child) == 'ok'
 
+    def __call__(self, function, *args, **kw):
+        """Run a function in the worker process and return its result."""
+        pickle.dump((function, args, kw), self.to_child)
+        self.to_child.flush()
+        return pickle.load(self.from_child)
+
     def __enter__(self):
-        assert self.push() == 'worker process pushed'
+        """During a 'with' statement, run commands in a clone of the worker."""
+        assert self(push) == 'worker process pushed'
 
     def __exit__(self, a,b,c):
-        assert self.pop() == 'worker process popped'
+        """When the 'with' statement ends, have the clone exit."""
+        assert self(pop) == 'worker process popped'
 
-    @remote
-    def push():
-        child_pid = os.fork()
-        if not child_pid:
-            return 'worker process pushed'
-        os.waitpid(child_pid, 0)
-        return 'worker process popped'
+def push():
+    """Fork a child worker, who will own the pipe until it exits."""
+    child_pid = os.fork()
+    if not child_pid:
+        return 'worker process pushed'
+    os.waitpid(child_pid, 0)
+    return 'worker process popped'
 
-    @remote
-    def pop():
-        """This is implemented as a special case in worker_task(), below."""
-
-    @remote
-    def __call__(function, *args, **kw):
-        return function(*args, **kw)
-
-    # @remote
-    # def list_modules():
-    #     return list(sys.modules)
-
-    # @remote
-    # def import_modules(names):
-    #     for name in names:
-    #         import_module(name)
+def pop():
+    """This is implemented as a special case in worker_task(), below."""
 
 def worker_task(pipes):
     """Run remote functions until being told to exit."""
@@ -94,12 +70,11 @@ def worker_task(pipes):
 
     while True:
         try:
-            name, args, kw = pickle.load(from_parent)
+            function, args, kw = pickle.load(from_parent)
         except EOFError:
             os._exit(0)
-        if name == 'pop':
+        if function.__name__ == 'pop':
             os._exit(0)
-        function = remote_functions[name]
         result = function(*args, **kw)
         pickle.dump(result, to_parent)
         to_parent.flush()
