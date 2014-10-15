@@ -73,7 +73,7 @@ def worker_task(pipes):
             function, args, kw = pickle.load(from_parent)
         except EOFError:
             os._exit(0)
-        if function.__name__ == 'pop':
+        if function is pop:
             os._exit(0)
         result = function(*args, **kw)
         pickle.dump(result, to_parent)
