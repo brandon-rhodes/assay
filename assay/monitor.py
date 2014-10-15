@@ -32,8 +32,14 @@ def watch_loop(module_name):
     path = launch_sync(get_directory_of, module_name)
     if path is not None:
         raise NotImplementedError('cannot yet introspect full packages')
-    print('Learning dependencies')
     worker = Worker()
+    print('Learning dependencies')
+    t0 = time.time()
+    assert worker.push() == 'worker process pushed'
+    print(worker.add(100, 222))
+    assert worker.pop() == 'worker process popped'
+    print(time.time() - t0)
+    #assert worker.pop() == 'worker process stopping'
     launch_sync(run_tests_of, module_name)
 
 def fetch_modules():
