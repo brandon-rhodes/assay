@@ -26,29 +26,43 @@ def watch_loop(module_name):
     launch_sync(run_tests_of, module_name)
 
 def run_tests_of(name):
-    write = sys.stderr.write
+    if hasattr(sys.stderr, 'buffer'):
+        write = sys.stderr.buffer.write
+    else:
+        write = sys.stderr.write
     flush = sys.stderr.flush
+
     module = import_module(name)
     d = module.__dict__
+
     good_names = sorted(k for k in d if k.startswith('test_'))
     candidates = [d[k] for k in good_names]
     tests = [t for t in candidates if t.__module__ == name]
+
     reports = []
     for t in tests:
-        code = t.func_code
+        code = getattr(t, 'func_code', None) or t.__code__
         if code.co_argcount:
             continue  # TODO: support the idea of fixtures
+
         try:
             t()
-        except AssertionError as e:
-            message = rerun_failing_assert(t)
+        except AssertionError:
+            message = 'rerun'
+            character = b'E'
         except Exception as e:
             message = '{}: {}'.format(e.__class__.__name__, e)
-            write(b'E')
+            character = b'E'
         else:
             message = None
-            write(b'.')
+            character = b'.'
+
+        write(character)
         flush()
+
+        if message == 'rerun':
+            message = rerun_failing_assert(t, code)
+
         if message is not None:
             reports.append('{}:{}\n  {}()\n  {}'.format(
                 code.co_filename, code.co_firstlineno, t.__name__, message))
