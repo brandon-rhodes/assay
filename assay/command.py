@@ -11,4 +11,7 @@ def main():
     try:
         main_loop(args.module)
     except TransformIntoWorker as pipes:
-        worker_task(pipes)
+        pass
+    else:
+        return
+    worker_task(pipes)
