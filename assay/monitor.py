@@ -23,6 +23,8 @@ def main_loop(module_name):
     if path is not None:
         raise NotImplementedError('cannot yet introspect full packages')
 
+    module_paths = {}
+
     with worker:
         initial_imports = worker(list_modules)
 
@@ -32,13 +34,14 @@ def main_loop(module_name):
         print('Importing {}'.format(module_name))
         with worker:
             t0 = time()
-            worker(import_modules, [module_name])
+            from pprint import pprint
+            pprint(worker(import_modules, [module_name]))
             print('  {} seconds'.format(time() - t0))
             print()
             worker(run_tests_of, module_name)
             path = worker(path_of, module_name)
         print('Watching', path)
-        wait_on([path])
+        changed_paths = wait_on([path])
 
         # with worker:
         #     before = set(worker(list_modules))
@@ -59,8 +62,14 @@ def list_modules():
     return list(sys.modules)
 
 def import_modules(module_names):
+    old = set(sys.modules.keys())
+    events = []
     for module_name in module_names:
-        import_module(module_name)
+        module = import_module(module_name)
+        new = set(sys.modules.keys()) - old
+        events.append((module_name, module.__file__, new))
+        old.update(new)
+    return events
 
 def path_of(module_name):
     path = import_module(module_name).__file__
