@@ -30,6 +30,11 @@ class AssayTests(unittest.TestCase):
         self.assertEqual(partially_order(order, edges),
                          ['D', 'E', 'C', 'B', 'A'])
 
+    def test_having_two_module_swaps(self):
+        order = ['E', 'C', 'D', 'A', 'B']
+        edges = {'C': 'D', 'A': 'B'}
+        self.assertEqual(partially_order(order, edges),
+                         ['E', 'D', 'C', 'B', 'A'])
 
 if __name__ == '__main__':
     unittest.main()
