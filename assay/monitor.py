@@ -3,8 +3,9 @@
 from __future__ import print_function
 
 import sys
-import time
+from time import time
 from .assertion import rerun_failing_assert
+from .filesystem import wait_on
 from .importation import import_module, get_directory_of
 from .worker import Worker
 
@@ -16,38 +17,54 @@ python3 = (sys.version_info.major >= 3)
 def main_loop(module_name):
     worker = Worker()
 
-    print('Running sanity check')
-
     with worker:
         path = worker(get_directory_of, module_name)
 
     if path is not None:
         raise NotImplementedError('cannot yet introspect full packages')
 
+    with worker:
+        initial_imports = worker(list_modules)
+
+    print('Assay up and running with {} modules'.format(len(initial_imports)))
+
     while True:
-        print('Learning dependencies')
+        print('Importing {}'.format(module_name))
         with worker:
-            before = set(worker(list_modules))
+            t0 = time()
             worker(import_modules, [module_name])
-            after = set(worker(list_modules))
-            print(after - before)
+            print('  {} seconds'.format(time() - t0))
+            print()
             worker(run_tests_of, module_name)
-        print('Loading dependencies')
-        dependencies = after - before - {module_name}
-        dependencies = [d for d in dependencies if not d.startswith('sky')]
-        print(dependencies)
-        with worker:
-            worker(import_modules, dependencies)
-            print('Running tests')
-            worker(run_tests_of, module_name)
-        break
+            path = worker(path_of, module_name)
+        print('Watching', path)
+        wait_on([path])
+
+        # with worker:
+        #     before = set(worker(list_modules))
+        #     worker(import_modules, [module_name])
+        #     after = set(worker(list_modules))
+        #     print(after - before)
+        #     worker(run_tests_of, module_name)
+        # print('Loading dependencies')
+        # dependencies = after - before - {module_name}
+        # dependencies = [d for d in dependencies if not d.startswith('sky')]
+        # print(dependencies)
+        # with worker:
+        #     worker(import_modules, dependencies)
+        #     print('Running tests')
+        #     worker(run_tests_of, module_name)
 
 def list_modules():
     return list(sys.modules)
 
-def import_modules(names):
-    for name in names:
-        import_module(name)
+def import_modules(module_names):
+    for module_name in module_names:
+        import_module(module_name)
+
+def path_of(module_name):
+    path = import_module(module_name).__file__
+    return path[:-1] if path.endswith('.pyc') else path
 
 def run_tests_of(module_name):
     flush = sys.stderr.flush
