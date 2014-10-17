@@ -64,8 +64,14 @@ def pop():
     """This is implemented as a special case in worker_task(), below."""
 
 def worker_task(pipes):
-    """Run remote functions until being told to exit."""
+    """Run functions piped to us from the parent process.
 
+    The main process produces a worker process by calling fork() and
+    having the child process raise TransformIntoWorker, which pops the
+    stack all the way out to assay.main.command() whose "try...except"
+    clause catches the exception and calls this function instead.
+
+    """
     to_parent, from_parent = pipes.args
 
     while True:
