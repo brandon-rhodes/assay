@@ -17,6 +17,7 @@ python3 = (sys.version_info.major >= 3)
 
 def main_loop(module_names):
     worker = Worker()
+    flush = sys.stdout.flush
 
     # with worker:
     #     path = worker(get_directory_of, module_name)
@@ -75,9 +76,13 @@ def main_loop(module_names):
             # print()
             worker(run_tests_of, module_names[0])
             path = worker(path_of, module_names[0])
-        print('Watching', path)
+        print()
+        print('Watching', path, end=' ...')
+        flush()
         changed_paths = wait_on([path])
         changed_paths
+        print()
+        print('Running tests')
 
         # with worker:
         #     before = set(worker(list_modules))
@@ -123,7 +128,7 @@ def import_modules(module_names):
 
 def path_of(module_name):
     path = import_module(module_name).__file__
-    return path[:-1] if path.endswith('.pyc') else path
+    return path
 
 def run_tests_of(module_name):
     flush = sys.stderr.flush
