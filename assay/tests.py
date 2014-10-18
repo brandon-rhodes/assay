@@ -1,5 +1,5 @@
 import unittest
-from .importation import partially_order
+from .importation import improve_order
 
 class AssayTests(unittest.TestCase):
 
@@ -7,47 +7,80 @@ class AssayTests(unittest.TestCase):
     # cetera, while modules X and Y and Z are not part of the chain.
 
     def test_stability_when_nothing_is_wrong(self):
-        order = ['A', 'B', 'C', 'D', 'E']
-        edges = {}
-        self.assertEqual(partially_order(order, edges),
-                         ['A', 'B', 'C', 'D', 'E'])
+        events = [
+            ('A', 'A'),
+            ('B', 'B'),
+            ('C', 'C'),
+            ('D', 'D'),
+            ('E', 'E'),
+            ]
+        self.assertEqual(improve_order(events), ['A', 'B', 'C', 'D', 'E'])
 
     def test_simple_swap(self):
-        order = ['A', 'B', 'D', 'C', 'E']
-        edges = {'D': 'C'}
-        self.assertEqual(partially_order(order, edges),
-                         ['A', 'B', 'C', 'D', 'E'])
+        events = [
+            ('A', 'A'),
+            ('B', 'B'),
+            ('D', 'CD'),
+            ('C', ''),
+            ('E', 'E'),
+            ]
+        self.assertEqual(improve_order(events), ['A', 'B', 'C', 'D', 'E'])
 
     def test_importing_main_module_first(self):
-        order = ['E', 'D', 'C', 'B', 'A']
-        edges = {'E': 'ABCD'}
-        self.assertEqual(partially_order(order, edges),
-                         ['D', 'C', 'B', 'A', 'E'])
+        events = [
+            ('E', 'ABCDE'),
+            ('A', ''),
+            ('B', ''),
+            ('C', ''),
+            ('D', ''),
+            ]
+        self.assertEqual(improve_order(events), ['A', 'B', 'C', 'D', 'E'])
 
     def test_importing_middle_module_first(self):
-        order = ['C', 'B', 'A', 'D', 'E']
-        edges = {'C': 'BA'}
-        self.assertEqual(partially_order(order, edges),
-                         ['B', 'A', 'C', 'D', 'E'])
+        events = [
+            ('C', 'ABC'),
+            ('A', ''),
+            ('B', ''),
+            ('D', 'D'),
+            ('E', 'E'),
+            ]
+        self.assertEqual(improve_order(events), ['A', 'B', 'C', 'D', 'E'])
 
     def test_having_two_module_swaps(self):
-        order = ['A', 'C', 'B', 'E', 'D']
-        edges = {'C': 'B', 'E': 'D'}
-        self.assertEqual(partially_order(order, edges),
-                         ['A', 'B', 'C', 'D', 'E'])
+        events = [
+            ('A', 'A'),
+            ('C', 'BC'),
+            ('B', ''),
+            ('E', 'DE'),
+            ('D', ''),
+            ]
+        self.assertEqual(improve_order(events), ['A', 'B', 'C', 'D', 'E'])
 
     def test_which_module_moves(self):
-        # If module C is moved to the end of the list, then does C
-        # simply get moved back, or does D get moved to its right?
-        order = ['A', 'B', 'D', 'X', 'Y', 'Z', 'C']
-        edges = {'D': 'C'}
-        self.assertEqual(partially_order(order, edges),
-                         ['A', 'B', 'X', 'Y', 'Z', 'C', 'D'])
+        # If module D is moved to the end of the list, then does D
+        # simply get moved back, or does E get moved to its right?
+        events = [
+            ('A', 'A'),
+            ('B', 'B'),
+            ('C', 'C'),
+            ('E', 'DE'),
+            ('X', 'X'),
+            ('Y', 'Y'),
+            ('Z', 'Z'),
+            ('D', ''),
+            ]
+        self.assertEqual(improve_order(events),
+                         ['A', 'B', 'C', 'X', 'Y', 'Z', 'D', 'E'])
 
     def test_learning_about_new_modules(self):
-        order = ['A', 'B', 'C', 'D', 'E']
-        edges = {'B': 'X', 'D': 'YZ'}
-        self.assertEqual(partially_order(order, edges),
+        events = [
+            ('A', 'A'),
+            ('B', 'BX'),
+            ('C', 'C'),
+            ('D', 'DYZ'),
+            ('E', 'E'),
+            ]
+        self.assertEqual(improve_order(events),
                          ['A', 'X', 'B', 'C', 'Z', 'Y', 'D', 'E'])
 
 if __name__ == '__main__':

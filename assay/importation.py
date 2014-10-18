@@ -1,6 +1,5 @@
 """Routines that understand Python importation."""
 
-from collections import defaultdict
 from importlib import import_module
 
 def get_directory_of(name):
@@ -8,32 +7,37 @@ def get_directory_of(name):
     module = import_module(name)
     return getattr(module, '__path__', None)
 
-def partially_order(existing_order, edges):
-    existing_nodes = set(existing_order)
-    key = {node: i for i, node in enumerate(existing_order)}.get
-    visited = set()
+def improve_order(import_events):
+    """Given an existing module `import_order` list, return a new one.
+
+    The new import order learns from the `import_events` of the last
+    slate of imports, a sequence whose tuples each report what really
+    happened when a module name was imported:
+
+    [('zlib', {'zlib'}),
+     ('zipfile', {'_io', 'binascii', 'grp', 'io', 'pwd', 'shutil', 'zipfile'}),
+     ...]
+
+    New modules will be inserted into the import order just before the
+    module that imports them.
+
+    """
+    key = {node: i for i, node in enumerate(a for a, bb in import_events)}.get
+    imported_by = {b: a for a, blist in import_events for b in blist if a != b}
+    already_appended = set()
     new_order = []
 
-    edges2 = defaultdict(set)
-    for a, blist in edges.items():
-        for b in blist:
-            edges2[b].add(a)
+    def append(name):
+        if name not in already_appended:
+            already_appended.add(name)
+            new_order.append(name)
 
-    def visit(node):
-        if node in visited:
-            return
-        visited.add(node)
-        children = edges2.get(node, None)
-        if children is not None:
-            for child in sorted(children, key=key):
-                visit(child)
-        new_order.append(node)
-        for node2 in sorted(edges.get(node, ())):
-            if node2 not in existing_nodes:
-                new_order.append(node2)
-
-    for node in reversed(existing_order):
-        visit(node)
+    for module_name, names_imported in reversed(import_events):
+        for name in sorted(imported_by.get(module_name, ()), key=key):
+            append(name)
+        append(module_name)
+        for name in sorted(names_imported, key=key):
+            append(name)
 
     new_order.reverse()
     return new_order
