@@ -75,11 +75,11 @@ def main_loop(module_names):
             # print('  {} seconds'.format(time() - t0))
             # print()
             worker(run_tests_of, module_names[0])
-            path = worker(path_of, module_names[0])
+            paths = worker(imported_paths)
         print()
-        print('Watching', path, end=' ...')
+        print('Watching', len(paths), 'paths', end='...')
         flush()
-        changed_paths = wait_on([path])
+        changed_paths = wait_on(paths.keys())
         changed_paths
         print()
         print('Running tests')
@@ -126,9 +126,9 @@ def import_modules(module_names):
         old = new
     return paths, events
 
-def path_of(module_name):
-    path = import_module(module_name).__file__
-    return path
+def imported_paths():
+    return {module.__file__: name for name, module in sys.modules.items()
+            if (module is not None) and hasattr(module, '__file__')}
 
 def run_tests_of(module_name):
     flush = sys.stderr.flush

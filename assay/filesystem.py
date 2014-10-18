@@ -44,8 +44,9 @@ def _inotify_wait_on(paths):
         for path in paths:
             rv = _libc.inotify_add_watch(fd, path, 0x2)
             if rv == -1:
-                raise OSError('inotify_add_watch() error: {}'.format(
-                    os.strerror(ctypes.get_errno())))
+                continue  # since this probably means file does not exist?
+                #raise OSError('{}\ngave inotify_add_watch() error: {}'.format(
+                #    path, os.strerror(ctypes.get_errno())))
             descriptors[rv] = path
         buf = os.read(fd, 1024)
         # TODO: continue with some more reads with 0.1 second timeouts
