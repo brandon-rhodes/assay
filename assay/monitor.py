@@ -3,10 +3,11 @@
 from __future__ import print_function
 
 import sys
+from pprint import pprint
 from time import time
 from .assertion import rerun_failing_assert
 from .filesystem import wait_on
-from .importation import import_module, get_directory_of
+from .importation import import_module, get_directory_of, improve_order
 from .worker import Worker
 
 def f():
@@ -14,34 +15,69 @@ def f():
 
 python3 = (sys.version_info.major >= 3)
 
-def main_loop(module_name):
+def main_loop(module_names):
     worker = Worker()
 
-    with worker:
-        path = worker(get_directory_of, module_name)
+    # with worker:
+    #     path = worker(get_directory_of, module_name)
 
-    if path is not None:
-        raise NotImplementedError('cannot yet introspect full packages')
+    # if path is not None:
+    #     raise NotImplementedError('cannot yet introspect full packages')
 
-    module_paths = {}
+    # known_modules = set()
+    # module_order = []
 
-    with worker:
-        initial_imports = worker(list_modules)
+    # with worker:
+    #     paths, events = worker(import_modules, [module_name])
 
-    print('Assay up and running with {} modules'.format(len(initial_imports)))
+    # # TODO: just return set from worker?
+
+    # for name, names in events:
+    #     names = set(names) - known_modules
+    #     module_order.extend(names)
+
+    if False:
+        # Debugging test of the module orderer: keep running the same
+        # set of modules through the partial orderer to see how quickly
+        # the order converges on something sensible.
+        module_order = list(module_names)
+        with worker:
+            paths, events = worker(import_modules, module_order)
+        pprint(events)
+        for i in range(12):
+            module_order = improve_order(events)
+            with worker:
+                paths, events = worker(import_modules, module_order)
+            if not i:
+                print('--------------------------')
+                pprint(events)
+        print('--------------------------')
+        pprint(events)
+        return
+
+    # module_paths = {}
+
+    # with worker:
+    #     initial_imports = worker(list_modules)
+
+    # print('Assay up and running with {} modules'.format(len(initial_imports)))
+
+    # import_order = list(module_names)
 
     while True:
-        print('Importing {}'.format(module_name))
+        # import_order = improve_order(import_order, dangers)
+        # print('Importing {}'.format(module_names))
         with worker:
-            t0 = time()
-            from pprint import pprint
-            pprint(worker(import_modules, [module_name]))
-            print('  {} seconds'.format(time() - t0))
-            print()
-            worker(run_tests_of, module_name)
-            path = worker(path_of, module_name)
+            # t0 = time()
+            # module_paths, events = worker(import_modules, import_order)
+            # pprint(events)
+            # print('  {} seconds'.format(time() - t0))
+            # print()
+            worker(run_tests_of, module_names[0])
+            path = worker(path_of, module_names[0])
         print('Watching', path)
         changed_paths = wait_on([path])
+        changed_paths
 
         # with worker:
         #     before = set(worker(list_modules))
@@ -58,18 +94,32 @@ def main_loop(module_name):
         #     print('Running tests')
         #     worker(run_tests_of, module_name)
 
+def speculatively_import_then_loop(import_order, ):
+    pass
+
+
 def list_modules():
     return list(sys.modules)
 
 def import_modules(module_names):
     old = set(sys.modules.keys())
+    paths = {}
     events = []
     for module_name in module_names:
-        module = import_module(module_name)
-        new = set(sys.modules.keys()) - old
-        events.append((module_name, module.__file__, new))
-        old.update(new)
-    return events
+        try:
+            module = import_module(module_name)
+        except ImportError:
+            continue  # for modules like "pytz.threading"
+
+        path = getattr(module, '__file__', None)
+        if path is not None:
+            paths[path] = module_name
+
+        new = set(name for name, module in sys.modules.items()
+                  if module is not None)
+        events.append((module_name, new - old))
+        old = new
+    return paths, events
 
 def path_of(module_name):
     path = import_module(module_name).__file__

@@ -6,7 +6,7 @@ from .worker import TransformIntoWorker, worker_task
 
 def main():
     parser = argparse.ArgumentParser(description='Fast testing framework.')
-    parser.add_argument('module', help='module or package to test')
+    parser.add_argument('module', nargs='+', help='module or package to test')
     args = parser.parse_args()
     try:
         main_loop(args.module)
