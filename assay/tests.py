@@ -36,6 +36,16 @@ class AssayTests(unittest.TestCase):
             ]
         self.assertEqual(improve_order(events), ['A', 'B', 'C', 'D', 'E'])
 
+    def test_order_of_imported_modules_is_retained(self):
+        events = [
+            ('E', 'ABCDE'),
+            ('D', ''),
+            ('A', ''),
+            ('C', ''),
+            ('B', ''),
+            ]
+        self.assertEqual(improve_order(events), ['D', 'A', 'C', 'B', 'E'])
+
     def test_importing_middle_module_first(self):
         events = [
             ('C', 'ABC'),
@@ -81,7 +91,7 @@ class AssayTests(unittest.TestCase):
             ('E', 'E'),
             ]
         self.assertEqual(improve_order(events),
-                         ['A', 'X', 'B', 'C', 'Z', 'Y', 'D', 'E'])
+                         ['A', 'X', 'B', 'C', 'Y', 'Z', 'D', 'E'])
 
 if __name__ == '__main__':
     unittest.main()

@@ -22,8 +22,7 @@ def improve_order(import_events):
     module that imports them.
 
     """
-    key = {node: i for i, node in enumerate(a for a, bb in import_events)}.get
-    imported_by = {b: a for a, blist in import_events for b in blist if a != b}
+    imported_by = {b: a for a, bset in import_events for b in bset if a != b}
     already_appended = set()
     new_order = []
 
@@ -33,10 +32,11 @@ def improve_order(import_events):
             new_order.append(name)
 
     for module_name, names_imported in reversed(import_events):
-        for name in sorted(imported_by.get(module_name, ()), key=key):
-            append(name)
+        importer_name = imported_by.get(module_name)
+        if importer_name is not None:
+            append(importer_name)
         append(module_name)
-        for name in sorted(names_imported, key=key):
+        for name in sorted(names_imported, reverse=True):
             append(name)
 
     new_order.reverse()
