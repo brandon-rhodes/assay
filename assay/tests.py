@@ -42,7 +42,13 @@ class AssayTests(unittest.TestCase):
         order = ['A', 'B', 'D', 'X', 'Y', 'Z', 'C']
         edges = {'D': 'C'}
         self.assertEqual(partially_order(order, edges),
-                         ['A', 'B', 'C', 'D', 'X', 'Y', 'Z'])
+                         ['A', 'B', 'X', 'Y', 'Z', 'C', 'D'])
+
+    def test_learning_about_new_modules(self):
+        order = ['A', 'B', 'C', 'D', 'E']
+        edges = {'B': 'X', 'D': 'YZ'}
+        self.assertEqual(partially_order(order, edges),
+                         ['A', 'X', 'B', 'C', 'Z', 'Y', 'D', 'E'])
 
 if __name__ == '__main__':
     unittest.main()
