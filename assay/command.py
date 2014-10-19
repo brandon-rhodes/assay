@@ -3,8 +3,7 @@
 from __future__ import print_function
 import argparse
 import os
-import sys
-from .monitor import main_loop
+from .monitor import main_loop, restart
 from .worker import TransformIntoWorker, worker_task
 
 def main():
@@ -15,8 +14,7 @@ def main():
     if 'PYTHONDONTWRITEBYTECODE' not in os.environ:
         print('Restarting Python to disable *.pyc imports')
         os.environ['PYTHONDONTWRITEBYTECODE'] = 'FORGREATJUSTICE'
-        executable = sys.executable
-        os.execvp(executable, [executable, '-m', 'assay'] + sys.argv[1:])
+        restart()
     try:
         main_loop(args.module)
     except TransformIntoWorker as pipes:

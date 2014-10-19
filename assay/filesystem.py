@@ -33,6 +33,9 @@ def looping_wait_on(paths):
                          if os.stat(path).st_mtime > start]
     return changed_paths
 
+FORMAT = 'iIII'
+SIZE = struct.calcsize(FORMAT)
+
 class FileWatcher(object):
 
     def __init__(self):
@@ -51,15 +54,20 @@ class FileWatcher(object):
             d = _libc.inotify_add_watch(fd, path, 0x2)
             self.paths.add(path)
             self.descriptors[d] = path
+            d = _libc.inotify_add_watch(fd, os.path.dirname(path), 0x2)
+            self.descriptors[d] = os.path.dirname(path)
 
     def wait(self):
-        buf = os.read(self.fd, 1024)
+        data = os.read(self.fd, 1024)
 
         # TODO: continue with some more reads with 0.1 second timeouts
         # to empty the list of roughly-simultaneous events before
         # closing our file descriptor and returning?
 
-        print(len(buf))
-        d, mask, cookie, name_length = struct.unpack('iIII', buf)
-        print(d, mask, cookie, name_length)
+        while data:
+            d, mask, cookie, name_length = struct.unpack(FORMAT, data[:SIZE])
+            j = SIZE + name_length
+            name = data[SIZE:j].rstrip('\0')
+            data = data[j:]
+            print(d, mask, cookie, name)
         return [self.descriptors[d].decode('ascii')]

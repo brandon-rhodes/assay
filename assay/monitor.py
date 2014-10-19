@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import os
 import sys
 from pprint import pprint
 from time import time
@@ -65,6 +66,7 @@ def main_loop(module_names):
 
     # import_order = list(module_names)
 
+    main_process_paths = set(imported_paths())
     file_watcher = FileWatcher()
 
     while True:
@@ -83,6 +85,14 @@ def main_loop(module_names):
         flush()
         file_watcher.add_paths(paths)
         changed_paths = file_watcher.wait()
+        main_process_changes = main_process_paths.intersection(changed_paths)
+        if main_process_changes:
+            example_path = main_process_changes.pop()
+            print()
+            print('Detected edit to {}'.format(example_path))
+            print('Restarting')
+            print()
+            restart()
         changed_paths
         print()
         print('Running tests')
@@ -101,6 +111,10 @@ def main_loop(module_names):
         #     worker(import_modules, dependencies)
         #     print('Running tests')
         #     worker(run_tests_of, module_name)
+
+def restart():
+    executable = sys.executable
+    os.execvp(executable, [executable, '-m', 'assay'] + sys.argv[1:])
 
 def speculatively_import_then_loop(import_order, ):
     pass
