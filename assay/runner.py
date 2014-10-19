@@ -19,6 +19,8 @@ def run_test(module, test):
 
 def run_test_with_fixtures(module, test, code, fixtures, args):
     items = fixtures[0]
+    if callable(items):
+        items = items()
     if len(fixtures) == 1:
         for item in items:
             run_test_with(module, test, code, args + (item,))
@@ -70,6 +72,7 @@ def run_test_with(module, test, code, args):
     if message is not None:
         frames = traceback.extract_tb(tb)
         frames = frames[1:]
+        print()
         for tup in frames:
             filename, line_number, function_name, text = tup
             a = '  {} line {}'.format(filename, line_number)
@@ -77,9 +80,5 @@ def run_test_with(module, test, code, args):
             f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
             print(f.format(a, b))
             print('   ', blue(text))
-            # print('  {} line {} in {}\n    {}'.format(
-            #     , , text))
         print(' ', red(message))
-        # reports.append('{}:{}\n  {}()\n  {}'.format(
-        #     code.co_filename, code.co_firstlineno, t.__name__))
         print()
