@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import os
 import sys
+import traceback
 from pprint import pprint
 from time import time
 from .assertion import rerun_failing_assert
@@ -166,7 +167,7 @@ def run_tests_of(module_name):
     for t in tests:
         code = t.__code__ if python3 else t.func_code
         if code.co_argcount:
-            continue  # TODO: support the idea of fixtures
+            print('#######',t)
 
         try:
             t()
@@ -174,6 +175,7 @@ def run_tests_of(module_name):
             message = 'rerun'
             character = b'E'
         except Exception as e:
+            tb = sys.exc_info()[2]
             message = '{}: {}'.format(e.__class__.__name__, e)
             character = b'E'
         else:
@@ -186,9 +188,32 @@ def run_tests_of(module_name):
         if message == 'rerun':
             message = rerun_failing_assert(t, code)
 
+        def black(text): # ';47' does bg color
+            return '\033[1;30m' + str(text) + '\033[0m'
+
+        def blue(text):
+            return '\033[1;35m' + str(text) + '\033[0m'
+
+        def yellow(text):
+            return '\033[1;33m' + str(text) + '\033[0m'
+
+        def red(text):
+            return '\033[1;31m' + str(text) + '\033[0m'
+
         if message is not None:
-            reports.append('{}:{}\n  {}()\n  {}'.format(
-                code.co_filename, code.co_firstlineno, t.__name__, message))
+            for tup in traceback.extract_tb(tb):
+                filename, line_number, function_name, text = tup
+                a = '  {} line {}'.format(filename, line_number)
+                b = 'in {}()'.format(function_name)
+                f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
+                print(f.format(a, b))
+                print('   ', blue(text))
+                # print('  {} line {} in {}\n    {}'.format(
+                #     , , text))
+            print(' ', red(message))
+            # reports.append('{}:{}\n  {}()\n  {}'.format(
+            #     code.co_filename, code.co_firstlineno, t.__name__))
+            print()
     print()
     for report in reports:
         print()
