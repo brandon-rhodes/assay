@@ -4,12 +4,11 @@ from __future__ import print_function
 
 import os
 import sys
-import traceback
 from pprint import pprint
 from time import time
-from .assertion import rerun_failing_assert
 from .filesystem import FileWatcher
 from .importation import import_module, get_directory_of, improve_order
+from .runner import run_test
 from .worker import Worker
 
 def f():
@@ -165,68 +164,19 @@ def run_tests_of(module_name):
 
     reports = []
     for t in tests:
-        code = t.__code__ if python3 else t.func_code
-        if code.co_argcount:
-            print(dir(code))
-            print('#######', code.co_varnames)
-
-        try:
-            t()
-        except AssertionError:
-            message = 'rerun'
-            character = b'E'
-        except Exception as e:
-            tb = sys.exc_info()[2]
-            message = '{}: {}'.format(e.__class__.__name__, e)
-            character = b'E'
-        else:
-            message = None
-            character = b'.'
-
-        write(character)
-        flush()
-
-        if message == 'rerun':
-            message = rerun_failing_assert(t, code)
-
-        def black(text): # ';47' does bg color
-            return '\033[1;30m' + str(text) + '\033[0m'
-
-        def blue(text):
-            return '\033[1;35m' + str(text) + '\033[0m'
-
-        def yellow(text):
-            return '\033[1;33m' + str(text) + '\033[0m'
-
-        def red(text):
-            return '\033[1;31m' + str(text) + '\033[0m'
-
-        if message is not None:
-            for tup in traceback.extract_tb(tb):
-                filename, line_number, function_name, text = tup
-                a = '  {} line {}'.format(filename, line_number)
-                b = 'in {}()'.format(function_name)
-                f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
-                print(f.format(a, b))
-                print('   ', blue(text))
-                # print('  {} line {} in {}\n    {}'.format(
-                #     , , text))
-            print(' ', red(message))
-            # reports.append('{}:{}\n  {}()\n  {}'.format(
-            #     code.co_filename, code.co_firstlineno, t.__name__))
-            print()
+        run_test(t)
     print()
     for report in reports:
         print()
         print(report)
     return
-    for tn in test_names:
-        test = d[tn]
-        print(test.__module__)
-    return []
-    names = []
-    for name, obj in vars(module).items():
-        if not name.startswith('test_'):
-            continue
-        names.append(name)
-    return names
+    # for tn in test_names:
+    #     test = d[tn]
+    #     print(test.__module__)
+    # return []
+    # names = []
+    # for name, obj in vars(module).items():
+    #     if not name.startswith('test_'):
+    #         continue
+    #     names.append(name)
+    # return names
