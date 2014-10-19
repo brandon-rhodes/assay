@@ -70,10 +70,11 @@ class FileWatcher(object):
                 j = SIZE + name_length
                 name = data[SIZE:j].rstrip('\0')
                 data = data[j:]
-                if is_editor_temporary_file(name):
+                if is_not_relevant(name):
                     continue
                 changes.append((directory, name))
         return changes
 
-def is_editor_temporary_file(name):
-    return name.endswith('~') or name.startswith('.#')
+def is_not_relevant(filename):
+    """Return whether we can ignore changes to a file with this filename."""
+    return filename.endswith('~') or filename.startswith('.#')

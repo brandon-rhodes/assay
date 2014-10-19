@@ -85,8 +85,8 @@ def main_loop(module_names):
         flush()
         file_watcher.add_paths(paths)
         changes = file_watcher.wait()
-        paths = [os.path.join(directory, filename) for directory, filename
-                 in changes if not filename.startswith('.#')]
+        paths = [os.path.join(directory, filename)
+                 for directory, filename in changes]
         print(paths)
         main_process_changes = main_process_paths.intersection(paths)
         if main_process_changes:
