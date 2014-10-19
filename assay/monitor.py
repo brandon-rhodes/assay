@@ -66,8 +66,16 @@ def main_loop(module_names):
 
     # import_order = list(module_names)
 
-    main_process_paths = set(imported_paths())
+    main_process_paths = set(path for name, path in list_module_paths())
     file_watcher = FileWatcher()
+
+    # with worker:
+    #     events = worker(import_modules, module_names)
+    #     module_paths = {path: name for name, path in worker(list_module_paths)}
+    #     print(module_paths)
+    #     for module_name in module_names:
+    #         path = module_paths[module_name]
+    #         print(path)
 
     while True:
         # import_order = improve_order(import_order, dangers)
@@ -79,7 +87,7 @@ def main_loop(module_names):
             # print('  {} seconds'.format(time() - t0))
             # print()
             worker(run_tests_of, module_names[0])
-            paths = worker(imported_paths)
+            paths = [path for name, path in worker(list_module_paths)]
         print()
         print('Watching', len(paths), 'paths', end='...')
         flush()
@@ -125,35 +133,28 @@ def list_modules():
     return list(sys.modules)
 
 def import_modules(module_names):
-    old = set(sys.modules.keys())
-    paths = {}
+    old = set(name for name, m in sys.modules.items() if m is not None)
     events = []
     for module_name in module_names:
         try:
-            module = import_module(module_name)
+            import_module(module_name)
         except ImportError:
             continue  # for modules like "pytz.threading"
-
-        path = getattr(module, '__file__', None)
-        if path is not None:
-            paths[path] = module_name
-
-        new = set(name for name, module in sys.modules.items()
-                  if module is not None)
+        new = set(name for name, m in sys.modules.items() if m is not None)
         events.append((module_name, new - old))
         old = new
-    return paths, events
+    return events
 
-def imported_paths():
-    return {module.__file__: name for name, module in sys.modules.items()
-            if (module is not None) and hasattr(module, '__file__')}
+def list_module_paths():
+    return [(name, module.__file__) for name, module in sys.modules.items()
+            if (module is not None) and hasattr(module, '__file__')]
 
 def run_tests_of(module_name):
     module = import_module(module_name)
     d = module.__dict__
 
-    good_names = sorted(k for k in d if k.startswith('test_'))
-    candidates = [d[k] for k in good_names]
+    test_names = sorted(k for k in d if k.startswith('test_'))
+    candidates = [d[k] for k in test_names]
     tests = [t for t in candidates if t.__module__ == module_name]
 
     reports = []
@@ -163,14 +164,3 @@ def run_tests_of(module_name):
     for report in reports:
         print()
         print(report)
-    return
-    # for tn in test_names:
-    #     test = d[tn]
-    #     print(test.__module__)
-    # return []
-    # names = []
-    # for name, obj in vars(module).items():
-    #     if not name.startswith('test_'):
-    #         continue
-    #     names.append(name)
-    # return names
