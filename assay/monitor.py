@@ -84,16 +84,17 @@ def main_loop(module_names):
         print('Watching', len(paths), 'paths', end='...')
         flush()
         file_watcher.add_paths(paths)
-        changed_paths = file_watcher.wait()
-        main_process_changes = main_process_paths.intersection(changed_paths)
+        changes = file_watcher.wait()
+        paths = [os.path.join(directory, filename) for directory, filename
+                 in changes if not filename.startswith('.#')]
+        print(paths)
+        main_process_changes = main_process_paths.intersection(paths)
         if main_process_changes:
             example_path = main_process_changes.pop()
             print()
             print('Detected edit to {}'.format(example_path))
-            print('Restarting')
-            print()
+            print(' Restart '.center(79, '='))
             restart()
-        changed_paths
         print()
         print('Running tests')
 

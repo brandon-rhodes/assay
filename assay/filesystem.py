@@ -1,11 +1,16 @@
 import ctypes
 import os
-import struct
 import time
+from struct import calcsize, unpack
 
 # Experimental inotify support for the sake of illustration.
 
-IN_MODIFY = 0x02
+MASK = (0x00000008 # IN_CLOSE_WRITE
+      | 0x00000080 # IN_MOVED_TO
+      | 0x00000200 # IN_DELETE
+      | 0x00000400 # IN_DELETE_SELF
+      | 0x00000800 # IN_MOVE_SELF
+      )
 _libc = None
 
 def _setup_libc():
@@ -34,7 +39,7 @@ def looping_wait_on(paths):
     return changed_paths
 
 FORMAT = 'iIII'
-SIZE = struct.calcsize(FORMAT)
+SIZE = calcsize(FORMAT)
 
 class FileWatcher(object):
 
@@ -47,27 +52,28 @@ class FileWatcher(object):
             message = os.strerror(ctypes.get_errno())
             raise OSError('inotify_init() error: {}'.format(message))
 
-    def add_paths(self, paths):
+    def add_paths(self, file_paths):
         fd = self.fd
-        new_paths = set(path.encode('ascii') for path in paths) - self.paths
-        for path in new_paths:
-            d = _libc.inotify_add_watch(fd, path, 0x2)
+        paths = set(os.path.dirname(path) for path in file_paths) - self.paths
+        for path in paths:
+            d = _libc.inotify_add_watch(fd, path, MASK)
             self.paths.add(path)
             self.descriptors[d] = path
-            d = _libc.inotify_add_watch(fd, os.path.dirname(path), 0x2)
-            self.descriptors[d] = os.path.dirname(path)
 
     def wait(self):
-        data = os.read(self.fd, 1024)
+        changes = []
+        while not changes:
+            data = os.read(self.fd, 8192)
+            while data:
+                d, mask, cookie, name_length = unpack(FORMAT, data[:SIZE])
+                directory = self.descriptors[d]
+                j = SIZE + name_length
+                name = data[SIZE:j].rstrip('\0')
+                data = data[j:]
+                if is_editor_temporary_file(name):
+                    continue
+                changes.append((directory, name))
+        return changes
 
-        # TODO: continue with some more reads with 0.1 second timeouts
-        # to empty the list of roughly-simultaneous events before
-        # closing our file descriptor and returning?
-
-        while data:
-            d, mask, cookie, name_length = struct.unpack(FORMAT, data[:SIZE])
-            j = SIZE + name_length
-            name = data[SIZE:j].rstrip('\0')
-            data = data[j:]
-            print(d, mask, cookie, name)
-        return [self.descriptors[d].decode('ascii')]
+def is_editor_temporary_file(name):
+    return name.endswith('~') or name.startswith('.#')
