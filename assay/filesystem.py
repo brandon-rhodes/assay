@@ -33,27 +33,33 @@ def looping_wait_on(paths):
                          if os.stat(path).st_mtime > start]
     return changed_paths
 
-def _inotify_wait_on(paths):
-    paths = [path.encode('ascii') for path in paths]
-    fd = _libc.inotify_init()
-    descriptors = {}
-    if fd == -1:
-        raise OSError('inotify_init() error: {}'.format(
-            os.strerror(ctypes.get_errno())))
-    try:
-        for path in paths:
-            rv = _libc.inotify_add_watch(fd, path, 0x2)
-            if rv == -1:
-                continue  # since this probably means file does not exist?
-                #raise OSError('{}\ngave inotify_add_watch() error: {}'.format(
-                #    path, os.strerror(ctypes.get_errno())))
-            descriptors[rv] = path
-        buf = os.read(fd, 1024)
+class FileWatcher(object):
+
+    def __init__(self):
+        _setup_libc()
+        self.paths = set()
+        self.descriptors = {}
+        self.fd = _libc.inotify_init()
+        if self.fd == -1:
+            message = os.strerror(ctypes.get_errno())
+            raise OSError('inotify_init() error: {}'.format(message))
+
+    def add_paths(self, paths):
+        fd = self.fd
+        new_paths = set(path.encode('ascii') for path in paths) - self.paths
+        for path in new_paths:
+            d = _libc.inotify_add_watch(fd, path, 0x2)
+            self.paths.add(path)
+            self.descriptors[d] = path
+
+    def wait(self):
+        buf = os.read(self.fd, 1024)
+
         # TODO: continue with some more reads with 0.1 second timeouts
         # to empty the list of roughly-simultaneous events before
         # closing our file descriptor and returning?
-    finally:
-        pass #os.close(fd)
-    time.sleep(0.1)  # until above TODO is done
-    wd, mask, cookie, name_length = struct.unpack('iIII', buf)
-    return [descriptors[wd].decode('ascii')]
+
+        print(len(buf))
+        d, mask, cookie, name_length = struct.unpack('iIII', buf)
+        print(d, mask, cookie, name_length)
+        return [self.descriptors[d].decode('ascii')]

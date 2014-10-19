@@ -6,7 +6,7 @@ import sys
 from pprint import pprint
 from time import time
 from .assertion import rerun_failing_assert
-from .filesystem import wait_on
+from .filesystem import FileWatcher
 from .importation import import_module, get_directory_of, improve_order
 from .worker import Worker
 
@@ -65,6 +65,8 @@ def main_loop(module_names):
 
     # import_order = list(module_names)
 
+    file_watcher = FileWatcher()
+
     while True:
         # import_order = improve_order(import_order, dangers)
         # print('Importing {}'.format(module_names))
@@ -79,7 +81,8 @@ def main_loop(module_names):
         print()
         print('Watching', len(paths), 'paths', end='...')
         flush()
-        changed_paths = wait_on(paths.keys())
+        file_watcher.add_paths(paths)
+        changed_paths = file_watcher.wait()
         changed_paths
         print()
         print('Running tests')
