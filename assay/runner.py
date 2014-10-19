@@ -8,20 +8,35 @@ from .assertion import rerun_failing_assert
 
 python3 = (sys.version_info.major >= 3)
 
-def run_test(test):
+def run_test(module, test):
+    code = test.__code__ if python3 else test.func_code
+    if code.co_argcount:
+        parameter_names = inspect.getargs(code).args
+        fixtures = [getattr(module, name) for name in parameter_names]
+        run_test_with_fixtures(module, test, code, fixtures, ())
+    else:
+        run_test_with(module, test, code, ())
+
+def run_test_with_fixtures(module, test, code, fixtures, args):
+    items = fixtures[0]
+    if len(fixtures) == 1:
+        for item in items:
+            run_test_with(module, test, code, args + (item,))
+    else:
+        remaining_fixtures = fixtures[1:]
+        for item in items:
+            run_test_with_fixtures(module, test, code,
+                                   remaining_fixtures, args + (item,))
+
+def run_test_with(module, test, code, args):
     flush = sys.stderr.flush
     if python3:
         write = sys.stderr.buffer.write
     else:
         write = sys.stderr.write
 
-    code = test.__code__ if python3 else test.func_code
-    if code.co_argcount:
-        parameter_names = inspect.getargs(code).args
-        print(parameter_names)
-
     try:
-        test()
+        test(*args)
     except AssertionError:
         tb = sys.exc_info()[2]
         message = 'rerun'
@@ -53,7 +68,9 @@ def run_test(test):
         return '\033[1;31m' + str(text) + '\033[0m'
 
     if message is not None:
-        for tup in traceback.extract_tb(tb):
+        frames = traceback.extract_tb(tb)
+        frames = frames[1:]
+        for tup in frames:
             filename, line_number, function_name, text = tup
             a = '  {} line {}'.format(filename, line_number)
             b = 'in {}()'.format(function_name)

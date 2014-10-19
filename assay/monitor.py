@@ -149,12 +149,6 @@ def imported_paths():
             if (module is not None) and hasattr(module, '__file__')}
 
 def run_tests_of(module_name):
-    flush = sys.stderr.flush
-    if python3:
-        write = sys.stderr.buffer.write
-    else:
-        write = sys.stderr.write
-
     module = import_module(module_name)
     d = module.__dict__
 
@@ -163,8 +157,8 @@ def run_tests_of(module_name):
     tests = [t for t in candidates if t.__module__ == module_name]
 
     reports = []
-    for t in tests:
-        run_test(t)
+    for test in tests:
+        run_test(module, test)
     print()
     for report in reports:
         print()
