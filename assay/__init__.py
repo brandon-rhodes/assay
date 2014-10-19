@@ -1,7 +1,6 @@
 """A fast Python testing framework."""
 
-# For the convenience of test code:
-
+import re
 from unittest.case import _AssertRaisesContext
 
 class raises(_AssertRaisesContext):
@@ -10,7 +9,6 @@ class raises(_AssertRaisesContext):
     def __init__(self, expected, expected_regexp=None):
         self.expected = expected
         self.failureException = AssertionError
-        print '****************', repr(expected_regexp)
-        self.expected_regexp = expected_regexp
+        self.expected_regexp = re.compile(expected_regexp)
 
 __all__ = ['raises']

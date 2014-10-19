@@ -167,7 +167,8 @@ def run_tests_of(module_name):
     for t in tests:
         code = t.__code__ if python3 else t.func_code
         if code.co_argcount:
-            print('#######',t)
+            print(dir(code))
+            print('#######', code.co_varnames)
 
         try:
             t()
