@@ -3,9 +3,11 @@
 from __future__ import print_function
 
 import os
+import re
 import sys
 from pprint import pprint
 from time import time
+from .discovery import interpret_command_line_name
 from .filesystem import FileWatcher
 from .importation import import_module, get_directory_of, improve_order
 from .runner import run_test
@@ -16,9 +18,18 @@ def f():
 
 python3 = (sys.version_info.major >= 3)
 
-def main_loop(module_names):
+def main_loop(names):
     worker = Worker()
     flush = sys.stdout.flush
+
+    results = [interpret_command_line_name(worker, name) for name in names]
+    results = [result for result in results if result is not None]
+    print(results)
+    # module_names = list(change_modules_to_filenames(worker, names))
+    # print(module_names)
+    # if not module_names:
+    #     return
+    return
 
     # with worker:
     #     path = worker(get_directory_of, module_name)
@@ -69,13 +80,22 @@ def main_loop(module_names):
     main_process_paths = set(path for name, path in list_module_paths())
     file_watcher = FileWatcher()
 
+    # module_names = set(module_names)
+
+    for name in names:
+        print(name)
+    # try:
+    #     module = import_module('foo/bar')
+    # except
+    # directories_visited = set()
     # with worker:
     #     events = worker(import_modules, module_names)
-    #     module_paths = {path: name for name, path in worker(list_module_paths)}
-    #     print(module_paths)
-    #     for module_name in module_names:
-    #         path = module_paths[module_name]
-    #         print(path)
+    #     module_paths = [path for name, path in worker(list_module_paths)
+    #                     if name in module_names]
+    # print(module_paths)
+        # for module_name in module_names:
+        #     p = module_paths[module_name]
+        #     print(p)
 
     while True:
         # import_order = improve_order(import_order, dangers)
@@ -86,7 +106,7 @@ def main_loop(module_names):
             # pprint(events)
             # print('  {} seconds'.format(time() - t0))
             # print()
-            worker(run_tests_of, module_names[0])
+            worker(run_tests_of, names[0])
             paths = [path for name, path in worker(list_module_paths)]
         print()
         print('Watching', len(paths), 'paths', end='...')
@@ -132,22 +152,8 @@ def speculatively_import_then_loop(import_order, ):
 def list_modules():
     return list(sys.modules)
 
-def import_modules(module_names):
-    old = set(name for name, m in sys.modules.items() if m is not None)
-    events = []
-    for module_name in module_names:
-        try:
-            import_module(module_name)
-        except ImportError:
-            continue  # for modules like "pytz.threading"
-        new = set(name for name, m in sys.modules.items() if m is not None)
-        events.append((module_name, new - old))
-        old = new
-    return events
-
-def list_module_paths():
-    return [(name, module.__file__) for name, module in sys.modules.items()
-            if (module is not None) and hasattr(module, '__file__')]
+def install_import_path(path):
+    sys.modules.insert(0, path)
 
 def run_tests_of(module_name):
     module = import_module(module_name)

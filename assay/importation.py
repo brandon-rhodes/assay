@@ -1,5 +1,6 @@
 """Routines that understand Python importation."""
 
+import sys
 from importlib import import_module
 
 def get_directory_of(name):
@@ -7,7 +8,24 @@ def get_directory_of(name):
     module = import_module(name)
     return getattr(module, '__path__', None)
 
-def improve_order(import_events):
+def import_modules(module_names):
+    old = set(name for name, m in sys.modules.items() if m is not None)
+    import_events = []
+    for module_name in module_names:
+        try:
+            import_module(module_name)
+        except ImportError:
+            continue  # for modules like "pytz.threading"
+        new = set(name for name, m in sys.modules.items() if m is not None)
+        import_events.append((module_name, new - old))
+        old = new
+    return import_events
+
+def list_module_paths():
+    return [(name, module.__file__) for name, module in sys.modules.items()
+            if (module is not None) and hasattr(module, '__file__')]
+
+def improve_order(events):
     """Given an existing module `import_order` list, return a new one.
 
     The new import order learns from the `import_events` of the last
