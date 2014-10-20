@@ -72,7 +72,7 @@ def worker_task(pipes):
     clause catches the exception and calls this function instead.
 
     """
-    to_parent, from_parent = pipes.args
+    to_parent, from_parent = pipes
 
     while True:
         try:
