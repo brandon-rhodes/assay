@@ -1,17 +1,22 @@
 import ctypes
-import os
+import re
 import time
+from collections import defaultdict
+from keyword import iskeyword
+from os import listdir, strerror
+from os.path import isdir, join
 from struct import calcsize, unpack
 
-# Experimental inotify support for the sake of illustration.
-
-MASK = (0x00000008 # IN_CLOSE_WRITE
-      | 0x00000080 # IN_MOVED_TO
-      | 0x00000200 # IN_DELETE
-      | 0x00000400 # IN_DELETE_SELF
-      | 0x00000800 # IN_MOVE_SELF
-      )
+IN_CLOSE_WRITE = 0x00000008
+IN_MOVED_TO =    0x00000080
+IN_CREATE =      0x00000100
+IN_DELETE =      0x00000200
+IN_DELETE_SELF = 0x00000400
+IN_MOVE_SELF =   0x00000800
+MASK = IN_CLOSE_WRITE | IN_MOVED_TO | IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF
 _libc = None
+
+identifier_re_match = re.compile('[A-Za-z_][A-Za-z0-9_]*').match
 
 def _setup_libc():
     global _libc
@@ -41,16 +46,32 @@ def looping_wait_on(paths):
 FORMAT = 'iIII'
 SIZE = calcsize(FORMAT)
 
-class FileWatcher(object):
+class Filesystem(object):
+    """A cached and sanitized filesystem view, automatically kept up-to-date.
 
+    """
     def __init__(self):
         _setup_libc()
-        self.paths = set()
-        self.descriptors = {}
         self.fd = _libc.inotify_init()
         if self.fd == -1:
-            message = os.strerror(ctypes.get_errno())
+            message = strerror(ctypes.get_errno())
             raise OSError('inotify_init() error: {}'.format(message))
+        self.descriptors = {}
+        self._isdir_cache = _isdir_dict()
+        self.isdir = self._isdir_cache.__getitem__
+        self.paths = set()
+
+    def search_directory(self, path):
+        pass
+
+    def list(self, directory):
+        listing = self.listings.get(directory)
+        if listing is None:
+            filenames = listdir(directory)
+            listing = [join(directory, filename) for filename in filenames
+                       if is_interesting(filename)]
+            self.listing[directory] = listing
+        return listing
 
     def add_paths(self, file_paths):
         fd = self.fd
@@ -75,6 +96,21 @@ class FileWatcher(object):
                 changes.append((directory, name))
         return changes
 
-def is_not_relevant(filename):
-    """Return whether we can ignore changes to a file with this filename."""
-    return filename.endswith('~') or filename.startswith('.#')
+def module_name_of(filename):
+    if filename.endswith('.py'):
+        base = filename[:-3]
+        if is_identifier(base):
+            return base
+    return None
+
+def is_identifier(name):
+    return identifier_re_match(name) and not iskeyword(name)
+
+def is_interesting(name):
+    return not (name.startswith('.') or name.endswith('~'))
+
+class _isdir_dict(dict):
+    def __missing__(self, key):
+        value = isdir(key)
+        self[key] = value
+        return value
