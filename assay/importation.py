@@ -9,6 +9,20 @@ def get_directory_of(name):
     return getattr(module, '__path__', None)
 
 def import_modules(module_names):
+    """Import the modules listed in `modules_names` and record what happens.
+
+    The return value is a list of ``(module_name, module_set)`` tuples
+    giving the actual result of each import:
+
+    [('zlib', {'zlib'}),
+     ('zipfile', {'_io', 'binascii', 'grp', 'io', 'pwd', 'shutil', 'zipfile'}),
+     ('_io', set()),
+     ('binascii', set()),
+     ...]
+
+    This list can then become the input to ``improve_order()``.
+
+    """
     old = set(name for name, m in sys.modules.items() if m is not None)
     import_events = []
     for module_name in module_names:
