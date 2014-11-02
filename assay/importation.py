@@ -25,19 +25,29 @@ def list_module_paths():
     return [(name, module.__file__) for name, module in sys.modules.items()
             if (module is not None) and hasattr(module, '__file__')]
 
-def improve_order(events):
-    """Given an existing module `import_order` list, return a new one.
+def improve_order(import_events):
+    """Given an `import_events` list, return a new module import order.
 
     The new import order learns from the `import_events` of the last
-    slate of imports, a sequence whose tuples each report what really
-    happened when a module name was imported:
+    slate of imports, a sequence of tuples that reports what really
+    happened as each module was imported.  The first element of each
+    tuple should be the module that was asked for, and the second
+    element be the set of modules that were imported as a result::
 
     [('zlib', {'zlib'}),
      ('zipfile', {'_io', 'binascii', 'grp', 'io', 'pwd', 'shutil', 'zipfile'}),
+     ('_io', set()),
+     ('binascii', set()),
      ...]
 
-    New modules will be inserted into the import order just before the
-    module that imports them.
+    The return value is a list of module names whose order is based on
+    the order of the `import_events`.  The difference is that each
+    module that caused several other modules to be imported as a
+    side-effect, like `zipfile` shown above, is moved after all of those
+    other modules in the new ordering.  New modules, that were not part
+    of the previous ordering but are present in one of the side-effect
+    sets, will be inserted into the import order just before the module
+    that imports them.
 
     """
     imported_by = {b: a for a, bset in import_events for b in bset if a != b}
