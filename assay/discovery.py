@@ -5,7 +5,7 @@ import re
 import sys
 from importlib import import_module
 from keyword import iskeyword
-from .importation import list_module_paths
+from .importation import import_modules, list_module_paths
 
 def paths_and_modules(worker, names):
     """Return paths and modules for each name on the command line.
@@ -19,33 +19,29 @@ def paths_and_modules(worker, names):
 
     """
 
-def interpret_command_line_name(worker, name):
+def interpret_argument(worker, name):
     """
 
     ('/os/path/addition', '')  - search the directory itself
-    ('/os/path/addition', 'package.package') - search __path__ if present
-    ('/os/path/addition', 'package.module') - search __path__ if present
-    (None, 'package.package') - search __path__ if present
+    ('/os/path/addition', 'name') - search module and its __path__ (if any)
+    (None, 'name') - search module and its __path__ (if any)
 
     """
     if os.path.isdir(name):
-        if not is_package(name):
-            return search_plain_directory, name
-        directory, prefix = os.path.abspath(name), ''
-        while is_package:
-            parent, subdirectory = os.path.split(directory)
-            if not subdirectory:
-                print('Error: there should not be an __init__.py file'
+        directory = name
+        package_names = []
+        while is_package(directory):
+            directory, package_name = os.path.split(directory)
+            if not package_name:
+                print('Error - there should not be an __init__.py file'
                       ' at the root of your filesystem')
                 return
-            if not is_identifier(subdirectory):
+            if not is_identifier(package_name):
                 print('Error - directory contains an __init__.py but its'
-                      ' name is not an identifier: {}'
-                      .format(parent))
+                      ' name is not an identifier: {}'.format(package_name))
                 return
-            directory, prefix = parent, subdirectory + '.' + prefix
-            is_package = os.path.isfile(os.path.join(directory, '__init__.py'))
-        return directory, prefix
+            package_names.append(package_name)
+        return directory, '.'.join(reversed(package_names))
 
     if os.path.isfile(name):
         base, extension = os.path.splitext(name)

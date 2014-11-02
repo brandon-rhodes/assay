@@ -1,7 +1,83 @@
+import os
+import shutil
+import tempfile
 import unittest
+from contextlib import contextmanager
+from .discovery import interpret_argument
 from .importation import improve_order
 
-class AssayTests(unittest.TestCase):
+# Tests.
+
+class DiscoveryTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Note that our directory `b` is inside of an otherwise empty
+        # directory in `/tmp`.  Without that level of isolation, someone
+        # who put a `__init__.py` in `/tmp` might break these tests.
+
+        cls.temporary_directory = tempfile.mkdtemp(prefix='assaytest')
+        cls.base = os.path.join(cls.temporary_directory, 'b')
+
+        def mkdir(*path_components):
+            os.mkdir(cls.path(*path_components))
+
+        def touch(*path_components):
+            with open(cls.path(*path_components), 'w'):
+                pass
+
+        mkdir()
+        touch('m1.py')
+        touch('m2.py')
+
+        mkdir('p1')
+        touch('p1', '__init__.py')
+        touch('p1', 'm3.py')
+        touch('p1', 'm4.py')
+        touch('p1', 'f1.py')
+
+        mkdir('p1', 'p2')
+        touch('p1', 'p2', '__init__.py')
+        touch('p1', 'p2', 'm5.py')
+        touch('p1', 'p2', 'm6.py')
+
+        mkdir('p1', 'd1')
+        touch('p1', 'd1', 'm7.py')
+        touch('p1', 'd1', 'm8.py')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.temporary_directory)
+
+    @classmethod
+    def path(cls, *components):
+        return os.path.join(cls.base, *components)
+
+    @contextmanager
+    def cd(self, *path_components):
+        cwd = os.getcwd()
+        os.chdir(self.path(*path_components))
+        try:
+            yield
+        finally:
+            os.chdir(cwd)
+
+    def test_naming_py_file_in_current_directory(self):
+        with self.cd('p1', 'd1'):
+            self.assertEqual(interpret_argument(None, 'm7.py'),
+                             ('.', 'm7'))
+
+    def test_naming_py_file_one_directory_deep(self):
+        with self.cd('p1'):
+            self.assertEqual(interpret_argument(None, 'd1/m7.py'),
+                             ('d1', 'm7'))
+
+    def test_naming_py_file_two_directories_deep(self):
+        with self.cd():
+            self.assertEqual(interpret_argument(None, 'p1/d1/m7.py'),
+                             ('p1/d1', 'm7'))
+
+class ImproveOrderTests(unittest.TestCase):
 
     # We assume that module B imports A, C imports B, D imports C, et
     # cetera, while modules X and Y and Z are not part of the chain.
