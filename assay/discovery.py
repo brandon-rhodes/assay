@@ -28,7 +28,7 @@ def interpret_argument(worker, name):
 
     """
     if os.path.isdir(name):
-        directory = name
+        directory = os.path.abspath(name)
         package_names = []
         while is_package(directory):
             directory, package_name = os.path.split(directory)
@@ -41,6 +41,7 @@ def interpret_argument(worker, name):
                       ' name is not an identifier: {}'.format(package_name))
                 return
             package_names.append(package_name)
+        directory = os.path.relpath(directory, '.')
         return directory, '.'.join(reversed(package_names))
 
     if os.path.isfile(name):
@@ -62,7 +63,8 @@ def interpret_argument(worker, name):
                       ' name is not an identifier: {}'.format(package_name))
                 return
             names.append(package_name)
-        return os.path.relpath(directory, '.'), '.'.join(reversed(names))
+        directory = os.path.relpath(directory, '.')
+        return directory or '.', '.'.join(reversed(names))
 
     with worker:
         worker(import_modules, [name])
