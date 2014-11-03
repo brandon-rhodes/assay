@@ -31,26 +31,15 @@ def interpret_argument(worker, name):
         return _discover_enclosing_packages(name)
 
     if os.path.isfile(name):
-        name = os.path.abspath(name)
         base, extension = os.path.splitext(name)
         if extension != '.py':
             print('Error - test file lacks .py extension: {}'.format(name))
             return
         directory, name = os.path.split(base)
-        names = [name]
-        while is_package(directory):
-            directory, package_name = os.path.split(directory)
-            if not package_name:
-                print('Error - there should not be an __init__.py file'
-                      ' at the root of your filesystem')
-                return
-            if not is_identifier(package_name):
-                print('Error - directory contains an __init__.py but its'
-                      ' name is not an identifier: {}'.format(package_name))
-                return
-            names.append(package_name)
-        directory = os.path.relpath(directory, '.')
-        return directory or '.', '.'.join(reversed(names))
+        directory, package = _discover_enclosing_packages(directory)
+        if package:
+            name = package + '.' + name
+        return directory, name
 
     with worker:
         worker(import_modules, [name])
