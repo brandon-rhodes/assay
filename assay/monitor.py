@@ -7,8 +7,8 @@ import re
 import sys
 from pprint import pprint
 from time import time
-from .discovery import interpret_command_line_name
-from .filesystem import FileWatcher
+from .discovery import interpret_argument
+from .filesystem import Filesystem
 from .importation import import_module, get_directory_of, improve_order
 from .runner import run_test
 from .worker import Worker
@@ -22,7 +22,7 @@ def main_loop(names):
     worker = Worker()
     flush = sys.stdout.flush
 
-    results = [interpret_command_line_name(worker, name) for name in names]
+    results = [interpret_argument(worker, name) for name in names]
     results = [result for result in results if result is not None]
     print(results)
     # module_names = list(change_modules_to_filenames(worker, names))
@@ -78,7 +78,7 @@ def main_loop(names):
     # import_order = list(module_names)
 
     main_process_paths = set(path for name, path in list_module_paths())
-    file_watcher = FileWatcher()
+    file_watcher = Filesystem()
 
     # module_names = set(module_names)
 
