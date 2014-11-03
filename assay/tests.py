@@ -69,20 +69,40 @@ class DiscoveryTests(unittest.TestCase):
         finally:
             os.chdir(cwd)
 
-    def test_naming_py_file_in_current_directory(self):
+    def test_file_path_in_current_directory(self):
         with self.cd('p1', 'd1'):
             self.assertEqual(interpret_argument(None, 'm7.py'),
                              ('.', 'm7'))
 
-    def test_naming_py_file_one_directory_deep(self):
+    def test_file_path_one_directory_deep(self):
         with self.cd('p1'):
             self.assertEqual(interpret_argument(None, 'd1/m7.py'),
                              ('d1', 'm7'))
 
-    def test_naming_py_file_two_directories_deep(self):
+    def test_file_path_two_directories_deep(self):
         with self.cd():
             self.assertEqual(interpret_argument(None, 'p1/d1/m7.py'),
                              ('p1/d1', 'm7'))
+
+    def test_module_path_in_current_directory(self):
+        with self.cd('p1', 'p2'):
+            self.assertEqual(interpret_argument(None, 'm5.py'),
+                             ('../..', 'p1.p2.m5'))
+
+    def test_module_path_one_package_deep(self):
+        with self.cd('p1'):
+            self.assertEqual(interpret_argument(None, 'p2/m5.py'),
+                             ('..', 'p1.p2.m5'))
+
+    def test_module_path_two_packages_deep(self):
+        with self.cd():
+            self.assertEqual(interpret_argument(None, 'p1/p2/m5.py'),
+                             ('.', 'p1.p2.m5'))
+
+    def test_module_path_two_packages_and_a_directory_deep(self):
+        with self.cd('..'):
+            self.assertEqual(interpret_argument(None, 'b/p1/p2/m5.py'),
+                             ('b', 'p1.p2.m5'))
 
 class ImproveOrderTests(unittest.TestCase):
 
