@@ -104,22 +104,22 @@ class DiscoveryTests(unittest.TestCase):
             self.assertEqual(interpret_argument(None, 'b/p1/p2/m5.py'),
                              ('b', 'p1.p2.m5'))
 
-    def test_package_that_is_current_directory(self):
+    def test_package_path_that_is_current_directory(self):
         with self.cd('p1', 'p2'):
             self.assertEqual(interpret_argument(None, '.'),
                              ('../..', 'p1.p2'))
 
-    def test_package_that_is_subdirectory(self):
+    def test_package_path_that_is_subdirectory(self):
         with self.cd('p1'):
             self.assertEqual(interpret_argument(None, 'p2'),
                              ('..', 'p1.p2'))
 
-    def test_package_that_is_subsubdirectory(self):
+    def test_package_path_that_is_subsubdirectory(self):
         with self.cd():
             self.assertEqual(interpret_argument(None, 'p1/p2'),
                              ('.', 'p1.p2'))
 
-    def test_package_path_two_packages_and_a_directory_deep(self):
+    def test_package_path_path_two_packages_and_a_directory_deep(self):
         with self.cd('..'):
             self.assertEqual(interpret_argument(None, 'b/p1/p2'),
                              ('b', 'p1.p2'))
