@@ -5,7 +5,9 @@ import re
 import sys
 from importlib import import_module
 from keyword import iskeyword
-from .importation import import_modules, list_module_paths
+from .importation import get_directory_of, import_modules, list_module_paths
+
+matches_dot_py = re.compile(r'[A-Za-z_][A-Za-z_0-9]*\.py').match
 
 def paths_and_modules(worker, names):
     """Return paths and modules for each name on the command line.
@@ -46,6 +48,24 @@ def interpret_argument(worker, name):
 
     print('Error - can neither open nor import: {}'.format(name))
 
+def search_argument(import_directory, import_name):
+    """Given a tuple returned by `interpret_argument()`, find tests."""
+    if import_directory is not None:
+        sys.path.insert(0, import_directory)
+    package_directory = get_directory_of(import_name)
+    names = [import_name]
+    if package_directory is not None:
+        # TODO: make this recursive; tried to use os.walk(), but it looks
+        # a bit awkward for this - makes us keep re-discovering where we are.
+        # TODO: ignore subdirectories that cannot be package names?
+        # Or that do not look test-like? Hmm. Big decisions there.
+        for filename in os.listdir(package_directory):
+            module_name = module_name_of(filename)
+            if not module_name:
+                continue
+            names.append(import_name + '.' + module_name)
+    return names
+
 def search_plain_directory(directory, listing):
     possible_packages = []
     for filename in listing:
@@ -69,6 +89,7 @@ def search_package_or_module(name):
     import_module
 
 def _discover_enclosing_packages(directory, names):
+    """Find the top-level directory surrounding a package or sub-package."""
     was_absolute = directory.startswith(os.sep)
     directory = os.path.abspath(directory)
     while is_package(directory):
@@ -89,12 +110,15 @@ def _discover_enclosing_packages(directory, names):
 def is_package(directory):
     return os.path.isfile(os.path.join(directory, '__init__.py'))
 
+def is_dot_py(name):
+    return matches_dot_py(name) and not iskeyword(name[:-3])
+
 def is_identifier(name):
     return re.match('[A-Za-z_][A-Za-z0-9_]*', name) and not iskeyword(name)
 
 def module_name_of(filename):
-    if filename.endswith('.py'):
+    if matches_dot_py(filename):
         base = filename[:-3]
-        if is_identifier(base):
+        if not iskeyword(base):
             return base
     return None

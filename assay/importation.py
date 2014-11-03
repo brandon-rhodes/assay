@@ -6,7 +6,7 @@ from importlib import import_module
 def get_directory_of(name):
     """Return the base directory of a package, or None for a plain module."""
     module = import_module(name)
-    return getattr(module, '__path__', None)
+    return getattr(module, '__path__', (None,))[0]
 
 def import_modules(module_names):
     """Import the modules listed in `modules_names` and record what happens.

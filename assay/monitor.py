@@ -7,7 +7,7 @@ import re
 import sys
 from pprint import pprint
 from time import time
-from .discovery import interpret_argument
+from .discovery import interpret_argument, search_argument
 from .filesystem import Filesystem
 from .importation import import_module, improve_order, list_module_paths
 from .runner import run_test
@@ -18,13 +18,12 @@ def f():
 
 python3 = (sys.version_info.major >= 3)
 
-def main_loop(names):
+def main_loop(arguments):
     worker = Worker()
     flush = sys.stdout.flush
 
-    results = [interpret_argument(worker, name) for name in names]
-    results = [result for result in results if result is not None]
-    print(results)
+    items = [interpret_argument(worker, argument) for argument in arguments]
+    print(items)
 
     main_process_paths = set(path for name, path in list_module_paths())
     file_watcher = Filesystem()
@@ -33,6 +32,12 @@ def main_loop(names):
         # import_order = improve_order(import_order, dangers)
         # print('Importing {}'.format(module_names))
         with worker:
+            names = []
+            for item in items:
+                import_path, import_name = item
+                more_names = search_argument(import_path, import_name)
+                names.extend(more_names)
+            print(names)
             # t0 = time()
             # module_paths, events = worker(import_modules, import_order)
             # pprint(events)
