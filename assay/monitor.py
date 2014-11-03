@@ -25,7 +25,6 @@ def main_loop(names):
     results = [interpret_argument(worker, name) for name in names]
     results = [result for result in results if result is not None]
     print(results)
-    return
 
     main_process_paths = set(path for name, path in list_module_paths())
     file_watcher = Filesystem()

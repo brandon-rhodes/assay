@@ -3,8 +3,8 @@ import re
 import time
 from collections import defaultdict
 from keyword import iskeyword
-from os import listdir, strerror
-from os.path import isdir, join
+from os import listdir, read, stat, strerror
+from os.path import dirname, isdir, join
 from struct import calcsize, unpack
 
 IN_CLOSE_WRITE = 0x00000008
@@ -39,8 +39,7 @@ def looping_wait_on(paths):
     changed_paths = []
     while not changed_paths:
         time.sleep(0.5)
-        changed_paths = [path for path in paths
-                         if os.stat(path).st_mtime > start]
+        changed_paths = [path for path in paths if stat(path).st_mtime > start]
     return changed_paths
 
 FORMAT = 'iIII'
@@ -75,7 +74,7 @@ class Filesystem(object):
 
     def add_paths(self, file_paths):
         fd = self.fd
-        paths = set(os.path.dirname(path) for path in file_paths) - self.paths
+        paths = set(dirname(path) for path in file_paths) - self.paths
         for path in paths:
             d = _libc.inotify_add_watch(fd, path, MASK)
             self.paths.add(path)
@@ -84,14 +83,14 @@ class Filesystem(object):
     def wait(self):
         changes = []
         while not changes:
-            data = os.read(self.fd, 8192)
+            data = read(self.fd, 8192)
             while data:
                 d, mask, cookie, name_length = unpack(FORMAT, data[:SIZE])
                 directory = self.descriptors[d]
                 j = SIZE + name_length
                 name = data[SIZE:j].rstrip('\0')
                 data = data[j:]
-                if is_not_relevant(name):
+                if not is_interesting(name):
                     continue
                 changes.append((directory, name))
         return changes
