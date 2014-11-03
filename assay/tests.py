@@ -1,3 +1,10 @@
+"""Test suite for Assay.
+
+To run these tests, simply invoke::
+
+    $ python -m assay.tests
+
+"""
 import os
 import shutil
 import tempfile
