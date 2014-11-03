@@ -28,7 +28,7 @@ def interpret_argument(worker, name):
 
     """
     if os.path.isdir(name):
-        return _discover_enclosing_packages(name)
+        return _discover_enclosing_packages(name, [])
 
     if os.path.isfile(name):
         base, extension = os.path.splitext(name)
@@ -36,10 +36,7 @@ def interpret_argument(worker, name):
             print('Error - test file lacks .py extension: {}'.format(name))
             return
         directory, name = os.path.split(base)
-        directory, package = _discover_enclosing_packages(directory)
-        if package:
-            name = package + '.' + name
-        return directory, name
+        return _discover_enclosing_packages(directory, [name])
 
     with worker:
         worker(import_modules, [name])
@@ -71,10 +68,9 @@ def insert_path_and_search_package_or_module(path, name):
 def search_package_or_module(name):
     import_module
 
-def _discover_enclosing_packages(directory):
+def _discover_enclosing_packages(directory, names):
     was_absolute = directory.startswith(os.sep)
     directory = os.path.abspath(directory)
-    names = []
     while is_package(directory):
         directory, package_name = os.path.split(directory)
         if not package_name:
