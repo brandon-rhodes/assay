@@ -28,21 +28,7 @@ def interpret_argument(worker, name):
 
     """
     if os.path.isdir(name):
-        directory = os.path.abspath(name)
-        package_names = []
-        while is_package(directory):
-            directory, package_name = os.path.split(directory)
-            if not package_name:
-                print('Error - there should not be an __init__.py file'
-                      ' at the root of your filesystem')
-                return
-            if not is_identifier(package_name):
-                print('Error - directory contains an __init__.py but its'
-                      ' name is not an identifier: {}'.format(package_name))
-                return
-            package_names.append(package_name)
-        directory = os.path.relpath(directory, '.')
-        return directory, '.'.join(reversed(package_names))
+        return _discover_enclosing_packages(name)
 
     if os.path.isfile(name):
         name = os.path.abspath(name)
@@ -95,6 +81,25 @@ def insert_path_and_search_package_or_module(path, name):
 
 def search_package_or_module(name):
     import_module
+
+def _discover_enclosing_packages(directory):
+    was_absolute = directory.startswith(os.sep)
+    directory = os.path.abspath(directory)
+    names = []
+    while is_package(directory):
+        directory, package_name = os.path.split(directory)
+        if not package_name:
+            print('Error - there should not be an __init__.py file'
+                  ' at the root of your filesystem')
+            return
+        if not is_identifier(package_name):
+            print('Error - directory contains an __init__.py but its'
+                  ' name is not an identifier: {}'.format(package_name))
+            return
+        names.append(package_name)
+    if not was_absolute:
+        directory = os.path.relpath(directory, '.')
+    return directory or '.', '.'.join(reversed(names))
 
 def is_package(directory):
     return os.path.isfile(os.path.join(directory, '__init__.py'))
