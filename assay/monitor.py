@@ -9,7 +9,7 @@ from pprint import pprint
 from time import time
 from .discovery import interpret_argument
 from .filesystem import Filesystem
-from .importation import import_module, get_directory_of, improve_order
+from .importation import import_module, improve_order, list_module_paths
 from .runner import run_test
 from .worker import Worker
 
@@ -25,77 +25,10 @@ def main_loop(names):
     results = [interpret_argument(worker, name) for name in names]
     results = [result for result in results if result is not None]
     print(results)
-    # module_names = list(change_modules_to_filenames(worker, names))
-    # print(module_names)
-    # if not module_names:
-    #     return
     return
-
-    # with worker:
-    #     path = worker(get_directory_of, module_name)
-
-    # if path is not None:
-    #     raise NotImplementedError('cannot yet introspect full packages')
-
-    # known_modules = set()
-    # module_order = []
-
-    # with worker:
-    #     paths, events = worker(import_modules, [module_name])
-
-    # # TODO: just return set from worker?
-
-    # for name, names in events:
-    #     names = set(names) - known_modules
-    #     module_order.extend(names)
-
-    if False:
-        # Debugging test of the module orderer: keep running the same
-        # set of modules through the partial orderer to see how quickly
-        # the order converges on something sensible.
-        module_order = list(module_names)
-        with worker:
-            paths, events = worker(import_modules, module_order)
-        pprint(events)
-        for i in range(12):
-            module_order = improve_order(events)
-            with worker:
-                paths, events = worker(import_modules, module_order)
-            if not i:
-                print('--------------------------')
-                pprint(events)
-        print('--------------------------')
-        pprint(events)
-        return
-
-    # module_paths = {}
-
-    # with worker:
-    #     initial_imports = worker(list_modules)
-
-    # print('Assay up and running with {} modules'.format(len(initial_imports)))
-
-    # import_order = list(module_names)
 
     main_process_paths = set(path for name, path in list_module_paths())
     file_watcher = Filesystem()
-
-    # module_names = set(module_names)
-
-    for name in names:
-        print(name)
-    # try:
-    #     module = import_module('foo/bar')
-    # except
-    # directories_visited = set()
-    # with worker:
-    #     events = worker(import_modules, module_names)
-    #     module_paths = [path for name, path in worker(list_module_paths)
-    #                     if name in module_names]
-    # print(module_paths)
-        # for module_name in module_names:
-        #     p = module_paths[module_name]
-        #     print(p)
 
     while True:
         # import_order = improve_order(import_order, dangers)
