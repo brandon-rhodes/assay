@@ -29,6 +29,7 @@ def main_loop(arguments):
     while True:
         # import_order = improve_order(import_order, dangers)
         # print('Importing {}'.format(module_names))
+        t0 = time()
         with worker:
             names = []
             for item in items:
@@ -44,6 +45,8 @@ def main_loop(arguments):
                 worker(run_tests_of, name)
             paths = [path for name, path in worker(list_module_paths)]
         print()
+        dt = time() - t0
+        print('Tests took {:.2f} seconds'.format(dt))
         print('Watching', len(paths), 'paths', end='...')
         flush()
         file_watcher.add_paths(paths)
