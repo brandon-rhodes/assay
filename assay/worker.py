@@ -38,7 +38,7 @@ class Worker(object):
 
         assert pickle.load(self.from_child) == 'ok'
 
-    def __call__(self, function, *args, **kw):
+    def call(self, function, *args, **kw):
         """Run a function in the worker process and return its result."""
         pickle.dump((function, args, kw), self.to_child)
         self.to_child.flush()
@@ -46,11 +46,11 @@ class Worker(object):
 
     def __enter__(self):
         """During a 'with' statement, run commands in a clone of the worker."""
-        assert self(push) == 'worker process pushed'
+        assert self.call(push) == 'worker process pushed'
 
     def __exit__(self, a,b,c):
         """When the 'with' statement ends, have the clone exit."""
-        assert self(pop) == 'worker process popped'
+        assert self.call(pop) == 'worker process popped'
 
 def push():
     """Fork a child worker, who will own the pipe until it exits."""

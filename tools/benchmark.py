@@ -11,7 +11,7 @@ def main():
 
     t0 = time()
     for item in items:
-        assert worker(int) == 0
+        assert worker.call(int) == 0
     dt = time() - t0
 
     print('{:,.6f} s = {:,.1f} /s: Using a worker to call a built-in'
@@ -19,7 +19,7 @@ def main():
 
     t0 = time()
     for item in items:
-        assert worker(dot) == '.'
+        assert worker.call(dot) == '.'
     dt = time() - t0
 
     print('{:,.6f} s = {:,.1f} /s: Using a worker to call a function'
@@ -28,7 +28,7 @@ def main():
     t0 = time()
     for item in items:
         with worker:
-            assert worker(dot) == '.'
+            assert worker.call(dot) == '.'
     dt = time() - t0
 
     print('{:,.6f} s = {:,.1f} /s: Pushing, calling, then popping a new worker'

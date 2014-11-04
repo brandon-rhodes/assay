@@ -42,8 +42,8 @@ def main_loop(arguments):
             # print('  {} seconds'.format(time() - t0))
             # print()
             for name in names:
-                worker(run_tests_of, name)
-            paths = [path for name, path in worker(list_module_paths)]
+                worker.call(run_tests_of, name)
+            paths = [path for name, path in worker.call(list_module_paths)]
         print()
         dt = time() - t0
         print('Tests took {:.2f} seconds'.format(dt))

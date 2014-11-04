@@ -41,8 +41,8 @@ def interpret_argument(worker, name):
         return _discover_enclosing_packages(directory, [name])
 
     with worker:
-        worker(import_modules, [name])
-        module_paths = dict(worker(list_module_paths))
+        worker.call(import_modules, [name])
+        module_paths = dict(worker.call(list_module_paths))
     if name in module_paths:
         return None, name
 
