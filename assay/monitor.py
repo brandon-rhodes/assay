@@ -3,9 +3,7 @@
 from __future__ import print_function
 
 import os
-import re
 import sys
-from pprint import pprint
 from time import time
 from .discovery import interpret_argument, search_argument
 from .filesystem import Filesystem
@@ -62,21 +60,6 @@ def main_loop(arguments):
             restart()
         print()
         print('Running tests')
-
-        # with worker:
-        #     before = set(worker(list_modules))
-        #     worker(import_modules, [module_name])
-        #     after = set(worker(list_modules))
-        #     print(after - before)
-        #     worker(run_tests_of, module_name)
-        # print('Loading dependencies')
-        # dependencies = after - before - {module_name}
-        # dependencies = [d for d in dependencies if not d.startswith('sky')]
-        # print(dependencies)
-        # with worker:
-        #     worker(import_modules, dependencies)
-        #     print('Running tests')
-        #     worker(run_tests_of, module_name)
 
 def restart():
     executable = sys.executable
