@@ -86,13 +86,8 @@ def run_tests_of(module_name):
     candidates = [d[k] for k in test_names]
     tests = [t for t in candidates if t.__module__ == module_name]
 
-    reports = []
     for test in tests:
         try:
             run_test(module, test)
         except TestFailure as e:
             print(e)
-    print()
-    for report in reports:
-        print()
-        print(report)
