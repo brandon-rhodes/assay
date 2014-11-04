@@ -10,7 +10,7 @@ from time import time
 from .discovery import interpret_argument, search_argument
 from .filesystem import Filesystem
 from .importation import import_module, improve_order, list_module_paths
-from .runner import run_test
+from .runner import TestFailure, run_test
 from .worker import Worker
 
 def f():
@@ -37,13 +37,13 @@ def main_loop(arguments):
                 import_path, import_name = item
                 more_names = search_argument(import_path, import_name)
                 names.extend(more_names)
-            print(names)
             # t0 = time()
             # module_paths, events = worker(import_modules, import_order)
             # pprint(events)
             # print('  {} seconds'.format(time() - t0))
             # print()
-            worker(run_tests_of, names[0])
+            for name in names:
+                worker(run_tests_of, name)
             paths = [path for name, path in worker(list_module_paths)]
         print()
         print('Watching', len(paths), 'paths', end='...')
@@ -102,7 +102,10 @@ def run_tests_of(module_name):
 
     reports = []
     for test in tests:
-        run_test(module, test)
+        try:
+            run_test(module, test)
+        except TestFailure as e:
+            print(e)
     print()
     for report in reports:
         print()
