@@ -93,12 +93,11 @@ def install_import_path(path):
     sys.modules.insert(0, path)
 
 def pretty_print_exception(character, name, message, frames):
-    frames = frames[1:]
     print()
     for tup in frames:
         filename, line_number, function_name, text = tup
         a = '  {} line {}'.format(filename, line_number)
-        b = 'in {}()'.format(function_name)
+        b = 'in {}'.format(function_name)
         f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
         print(f.format(a, b))
         print('   ', blue(text))

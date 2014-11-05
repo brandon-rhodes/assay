@@ -17,13 +17,10 @@ _no_such_fixture = object()
 def run_tests_of(module_name):
     """Run all tests discovered inside of a module."""
     module = import_module(module_name)
-    d = module.__dict__
+    tests = sorted((k, v) for k, v in module.__dict__.items()
+                   if k.startswith('test_') and v.__module__ == module_name)
 
-    test_names = sorted(k for k in d if k.startswith('test_'))
-    candidates = [d[k] for k in test_names]
-    tests = [t for t in candidates if t.__module__ == module_name]
-
-    for test in tests:
+    for name, test in tests:
         for result in run_test(module, test):
             yield result
 
