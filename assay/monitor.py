@@ -111,12 +111,12 @@ def pretty_print_exception(character, name, message, frames, out='', err=''):
         print(plain_banner)
     for tup in frames:
         filename, line_number, function_name, text = tup
-        a = '  {} line {}'.format(filename, line_number)
-        b = 'in {}'.format(function_name)
+        a = '  {} line {} in'.format(filename, line_number)
+        b = '{}'.format(function_name)
         f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
         print(f.format(a, b))
         print('   ', blue(text))
-    print(' ', red(message))
+    print(red('{}: {}'.format(name, message)))
     print()
 
 def black(text): # ';47' does bg color
