@@ -162,17 +162,17 @@ class ErrorMessageTests(unittest.TestCase):
     def test_raising_exception(self):
         result = self.execute(samples.test_exc)
         self.assertEqual(result, [
-            ('E', 'Exception', 'xyz', [
-                ('assay/samples.py', 1, 'test_exc', "raise Exception('xyz')"),
+            ('E', 'IOError', 'xyz', [
+                ('assay/samples.py', 1, 'test_exc', "raise IOError('xyz')"),
                 ]),
             ])
 
     def test_raising_exception_from_subroutine(self):
         result = self.execute(samples.test_exc2)
         self.assertEqual(result, [
-            ('E', 'Exception', 'xyz', [
+            ('E', 'IOError', 'xyz', [
                 ('assay/samples.py', 1, 'test_exc2', "return test_exc()"),
-                ('assay/samples.py', -2, 'test_exc', "raise Exception('xyz')"),
+                ('assay/samples.py', -2, 'test_exc', "raise IOError('xyz')"),
                 ]),
             ])
 
@@ -210,19 +210,19 @@ class ErrorMessageTests(unittest.TestCase):
             ('E', 'AssertionError', 'it is false that 1 != 1', [
                 ('assay/samples.py', 1, 'test_fix3(1)', 'assert fix3 != 1'),
                 ]),
-            ('E', 'ValueError', 'xyz', [
-                ('assay/runner.py', 42, 'generate_arguments_from_fixtures',
-                 'args[j] = next(iterators[j])'),
-                ('assay/samples.py', 6, 'fix3(1)', "raise ValueError('xyz')"),
+            ('F', 'ValueError', 'xyz', [
+                ('assay/samples.py', 0, 'test_fix3', 'Call to fixture fix3()'),
+                ('assay/samples.py', 6, 'fix3', "raise ValueError('xyz')"),
                 ]),
             ])
 
     def test_fix4(self):
         result = self.execute(samples.test_fix4)
         self.assertEqual(result, [
-            ('F', 'Failure', 'fixture test_exc() raised xyz', [
+            ('F', 'IOError', 'xyz', [
                 ('assay/samples.py', 0, 'test_fix4',
-                 'def test_fix4(test_exc):'),
+                 'Call to fixture test_exc()'),
+                ('assay/samples.py', -27, 'test_exc', "raise IOError('xyz')"),
                 ]),
             ])
 

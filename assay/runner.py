@@ -30,10 +30,11 @@ def run_tests_of(module_name):
 def run_test(module, test):
     args = ()
     code = test.__code__ if _python3 else test.func_code
+    if not code.co_argcount:
+        yield run_test_with_arguments(module, test, code, args)
+        return
+
     try:
-        if not code.co_argcount:
-            yield run_test_with_arguments(module, test, code, args)
-            return
         names = inspect.getargs(code).args
         for args in generate_arguments_from_fixtures(module, names):
             yield run_test_with_arguments(module, test, code, args)
@@ -44,9 +45,12 @@ def run_test(module, test):
         frames = [(filename, firstlineno, test.__name__, line)]
         yield 'F', 'Failure', str(e), add_args(frames, args)
     except Exception as e:
-        tb = sys.exc_info()[2]
-        frames = traceback.extract_tb(tb)[1:]
-        yield 'E', e.__class__.__name__, str(e), add_args(frames, args)
+        frames = traceback_frames()
+        filename = code.co_filename
+        firstlineno = code.co_firstlineno
+        line = 'Call to fixture {}()'.format(frames[0][2])
+        frames.insert(0, (filename, firstlineno, test.__name__, line))
+        yield 'F', e.__class__.__name__, str(e), frames
 
 def find_fixture(module, name):
     fixture = getattr(module, name, _no_such_fixture)
@@ -75,10 +79,10 @@ def generate_arguments_from_fixtures(module, names):
 
 def iterate_over_fixture(name, fixture):
     if callable(fixture):
-        try:
-            i = fixture()
-        except Exception as e:
-            raise Failure('fixture {}() raised {}'.format(name, e))
+        # try:
+        i = fixture()
+        # except Exception as e:
+        #     raise Failure('fixture {}() raised {}'.format(name, e))
         if not isinstance(i, GeneratorType):
             raise Failure('fixture {}() is not a generator'.format(name))
     else:
@@ -103,6 +107,10 @@ def run_test_with_arguments(module, test, code, args):
 
     message = rerun_failing_assert(test, code, args)
     return 'E', 'AssertionError', message, add_args(frames[-1:], args)
+
+def traceback_frames():
+    return [frame for frame in traceback.extract_tb(sys.exc_info()[2])
+            if frame[0] != __file__]
 
 def add_args(frames, args):
     filename, lineno, name, line = frames[-1]
