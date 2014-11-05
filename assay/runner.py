@@ -47,10 +47,9 @@ def run_tests_of(module_name):
 
 def run_test(module, test):
     """Run a test, detecting whether it needs fixtures and providing them."""
-    args = ()
     code = test.__code__ if _python3 else test.func_code
     if not code.co_argcount:
-        yield run_test_with_arguments(module, test, code, args)
+        yield run_test_with_arguments(module, test, code, ())
         return
 
     try:
@@ -77,10 +76,10 @@ def find_fixture(module, name):
     return fixture
 
 def generate_arguments_from_fixtures(names, fixtures):
-    """Given a list of fixtures, yield all combinations of argument.
+    """Yield all combinations of the outputs of a list of fixtures.
 
-    >>> list(generate_arguments_from_fixtures(['f1', 'f2'], ['AB', 'XY']))
-    [('A', 'X'), ('A', 'Y'), ('B', 'X'), ('B', 'Y')]
+    >>> list(generate_arguments_from_fixtures(['f1', 'f2'], ['AB', 'xy']))
+    [('A', 'x'), ('A', 'y'), ('B', 'x'), ('B', 'y')]
 
     """
     iterators = [iterate_over_fixture(name, fixture) for name, fixture
@@ -132,7 +131,7 @@ def traceback_frames():
             if frame[0] != __file__]
 
 def add_args(frames, args):
-    """Rewrite traceback to show a test function was called with arguments."""
+    """Rewrite traceback to show the test function's arguments."""
     filename, lineno, name, line = frames[-1]
     if len(args) == 1:
         name = '{}({!r})'.format(name, args[0])
