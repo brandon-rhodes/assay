@@ -38,17 +38,14 @@ def run_test(module, test):
         names = inspect.getargs(code).args
         for args in generate_arguments_from_fixtures(module, names):
             yield run_test_with_arguments(module, test, code, args)
-    except Failure as e:
-        filename = code.co_filename
-        firstlineno = code.co_firstlineno
-        line = linecache.getline(filename, firstlineno).strip()
-        frames = [(filename, firstlineno, test.__name__, line)]
-        yield 'F', 'Failure', str(e), add_args(frames, args)
     except Exception as e:
         frames = traceback_frames()
         filename = code.co_filename
         firstlineno = code.co_firstlineno
-        line = 'Call to fixture {}()'.format(frames[0][2])
+        if len(frames):
+            line = 'Call to fixture {}()'.format(frames[0][2])
+        else:
+            line = linecache.getline(filename, firstlineno).strip()
         frames.insert(0, (filename, firstlineno, test.__name__, line))
         yield 'F', e.__class__.__name__, str(e), frames
 
