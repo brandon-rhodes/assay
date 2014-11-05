@@ -8,7 +8,7 @@ from time import time
 from .discovery import interpret_argument, search_argument
 from .filesystem import Filesystem
 from .importation import import_module, improve_order, list_module_paths
-from .runner import run_tests_of
+from .runner import capture_stdout_stderr, run_tests_of
 from .worker import Worker
 
 def f():
@@ -43,7 +43,8 @@ def main_loop(arguments):
             # print()
             test_count = 0
             for name in names:
-                worker.start(run_tests_of, name)
+                worker.start(capture_stdout_stderr, run_tests_of, name)
+                # worker.start(run_tests_of, name)
                 while True:
                     obj = worker.next()
                     if obj is StopIteration:
@@ -92,8 +93,22 @@ def list_modules():
 def install_import_path(path):
     sys.modules.insert(0, path)
 
-def pretty_print_exception(character, name, message, frames):
+stdout_banner = ' stdout '.center(72, '-')
+stderr_banner = ' stderr '.center(72, '-')
+plain_banner = '-' * 72
+
+def pretty_print_exception(character, name, message, frames, out='', err=''):
     print()
+    out = out.rstrip()
+    err = err.rstrip()
+    if out:
+        print(stdout_banner)
+        print(green(out))
+    if err:
+        print(stderr_banner)
+        print(yellow(err))
+    if out or err:
+        print(plain_banner)
     for tup in frames:
         filename, line_number, function_name, text = tup
         a = '  {} line {}'.format(filename, line_number)
@@ -107,11 +122,14 @@ def pretty_print_exception(character, name, message, frames):
 def black(text): # ';47' does bg color
     return '\033[1;30m' + str(text) + '\033[0m'
 
-def blue(text):
-    return '\033[1;35m' + str(text) + '\033[0m'
+def red(text):
+    return '\033[1;31m' + str(text) + '\033[0m'
+
+def green(text):
+    return '\033[1;32m' + str(text) + '\033[0m'
 
 def yellow(text):
     return '\033[1;33m' + str(text) + '\033[0m'
 
-def red(text):
-    return '\033[1;31m' + str(text) + '\033[0m'
+def blue(text):
+    return '\033[1;35m' + str(text) + '\033[0m'

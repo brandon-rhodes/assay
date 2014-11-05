@@ -5,6 +5,7 @@ import inspect
 import linecache
 import sys
 import traceback
+from StringIO import StringIO
 from .assertion import rerun_failing_assert
 from .importation import import_module
 
@@ -13,6 +14,26 @@ class Failure(Exception):
 
 _python3 = (sys.version_info.major >= 3)
 _no_such_fixture = object()
+
+def capture_stdout_stderr(generator, *args):
+    """Call a generator, supplementing its tuples with stdout, stderr data."""
+    oldout = sys.stdout
+    olderr = sys.stderr
+    out = StringIO()
+    err = StringIO()
+    sys.stdout = out
+    sys.stderr = err
+    try:
+        for item in generator(*args):
+            if isinstance(item, tuple):
+                yield item + (out.getvalue(), err.getvalue())
+            else:
+                yield item
+            out.truncate(0)
+            err.truncate(0)
+    finally:
+        sys.stdout = oldout
+        sys.stderr = olderr
 
 def run_tests_of(module_name):
     """Run all tests discovered inside of a module."""
