@@ -2,6 +2,7 @@
 
 import os
 import sys
+from types import GeneratorType
 
 python3 = (sys.version_info.major >= 3)
 
@@ -44,6 +45,24 @@ class Worker(object):
         self.to_child.flush()
         return pickle.load(self.from_child)
 
+    def start(self, generator, *args, **kw):
+        """Start a generator in the worker process."""
+        pickle.dump((generator, args, kw), self.to_child)
+        self.to_child.flush()
+
+    def next(self):
+        """Return the next item from the generator given to `start()`."""
+        return pickle.load(self.from_child)
+
+    def fileno(self):
+        """Return the file descriptor on which the child sends us data.
+
+        This method allows a `Worker` object to be supplied directly to
+        a poll or select object from the Standard Library.
+
+        """
+        return self.from_child.fileno()
+
     def __enter__(self):
         """During a 'with' statement, run commands in a clone of the worker."""
         assert self.call(push) == 'worker process pushed'
@@ -82,5 +101,12 @@ def worker_task(pipes):
         if function is pop:
             os._exit(0)
         result = function(*args, **kw)
-        pickle.dump(result, to_parent)
-        to_parent.flush()
+        if isinstance(result, GeneratorType):
+            for item in result:
+                pickle.dump(item, to_parent)
+                to_parent.flush()
+            pickle.dump(StopIteration, to_parent)
+            to_parent.flush()
+        else:
+            pickle.dump(result, to_parent)
+            to_parent.flush()

@@ -81,8 +81,8 @@ def run_test_with(module, test, code, args):
         message = None
         character = b'.'
 
-    write(character)
-    flush()
+    # write(character)
+    # flush()
 
     if message == 'rerun':
         message = rerun_failing_assert(test, code)

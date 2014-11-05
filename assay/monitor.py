@@ -18,6 +18,7 @@ python3 = (sys.version_info.major >= 3)
 
 def main_loop(arguments):
     worker = Worker()
+    write = sys.stdout.write
     flush = sys.stdout.flush
 
     items = [interpret_argument(worker, argument) for argument in arguments]
@@ -42,7 +43,13 @@ def main_loop(arguments):
             # print()
             test_count = 0
             for name in names:
-                test_count += worker.call(run_tests_of, name)
+                worker.start(run_tests_of, name)
+                while True:
+                    obj = worker.next()
+                    if obj is StopIteration:
+                        break
+                    write(obj)
+                    flush()
             paths = [path for name, path in worker.call(list_module_paths)]
         print()
         dt = time() - t0
@@ -94,6 +101,7 @@ def run_tests_of(module_name):
         try:
             run_test(module, test)
         except TestFailure as e:
-            print(e)
-
-    return len(tests)
+            yield 'E'
+            #print(e)
+        else:
+            yield '.'
