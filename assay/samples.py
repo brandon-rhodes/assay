@@ -25,3 +25,12 @@ def test_fix2(fix2):
     assert fix2 != 2
 
 fix2 = [0, 1, 2, 3]
+
+def test_fix3(fix3):
+    assert fix3 != 1
+
+def fix3():
+    yield 0
+    yield 1
+    raise ValueError('xyz')
+    yield 2

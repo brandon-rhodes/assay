@@ -179,6 +179,18 @@ class ErrorMessageTests(unittest.TestCase):
             '.',
             ])
 
+    def test_fix3(self):
+        result = list(run_test(samples, samples.test_fix3))
+        self.assertEqual(result, [
+            '.',
+            ('E', 'AssertionError', 'it is false that 1 != 1', [
+                ('assay/samples.py', 30, 'test_fix3', 'assert fix3 != 1'),
+                ]),
+            ('F', 'Failure', 'Exception xyz iterating over fix3', [
+                ('assay/samples.py', 29, 'test_fix3', 'def test_fix3(fix3):'),
+                ]),
+            ])
+
 
 class ImproveOrderTests(unittest.TestCase):
 

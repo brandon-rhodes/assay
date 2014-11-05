@@ -66,7 +66,7 @@ def run_test_with_fixtures(module, test, code, names, fixtures, args):
 def iterate_over_fixture(name, fixture):
     if callable(fixture):
         try:
-            fixture = fixture()
+            i = fixture()
         except Exception as e:
             raise Failure('Exception {} when calling {}()'.format(e, name))
         # TODO: check that it is a generator
