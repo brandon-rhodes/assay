@@ -5,7 +5,6 @@ import inspect
 import linecache
 import sys
 import traceback
-from types import GeneratorType
 from .assertion import rerun_failing_assert
 from .importation import import_module
 
@@ -16,6 +15,7 @@ _python3 = (sys.version_info.major >= 3)
 _no_such_fixture = object()
 
 def run_tests_of(module_name):
+    """Run all tests discovered inside of a module."""
     module = import_module(module_name)
     d = module.__dict__
 
@@ -28,6 +28,7 @@ def run_tests_of(module_name):
             yield result
 
 def run_test(module, test):
+    """Run a test, detecting whether it needs fixtures and providing them."""
     args = ()
     code = test.__code__ if _python3 else test.func_code
     if not code.co_argcount:
@@ -36,7 +37,8 @@ def run_test(module, test):
 
     try:
         names = inspect.getargs(code).args
-        for args in generate_arguments_from_fixtures(module, names):
+        fixtures = [find_fixture(module, name) for name in names]
+        for args in generate_arguments_from_fixtures(names, fixtures):
             yield run_test_with_arguments(module, test, code, args)
     except Exception as e:
         frames = traceback_frames()
@@ -50,13 +52,19 @@ def run_test(module, test):
         yield 'F', e.__class__.__name__, str(e), frames
 
 def find_fixture(module, name):
+    """Try to resolve a fixture, given its name and the test module."""
     fixture = getattr(module, name, _no_such_fixture)
     if fixture is _no_such_fixture:
         raise Failure('no such fixture {!r}'.format(name))
     return fixture
 
-def generate_arguments_from_fixtures(module, names):
-    fixtures = [find_fixture(module, name) for name in names]
+def generate_arguments_from_fixtures(names, fixtures):
+    """Given a list of fixtures, yield all combinations of argument.
+
+    >>> list(generate_arguments_from_fixtures(['f1', 'f2'], ['AB', 'XY']))
+    [('A', 'X'), ('A', 'Y'), ('B', 'X'), ('B', 'Y')]
+
+    """
     iterators = [iterate_over_fixture(name, fixture) for name, fixture
                  in zip(names, fixtures)]
     args = [next(i) for i in iterators]
@@ -75,16 +83,16 @@ def generate_arguments_from_fixtures(module, names):
             return
 
 def iterate_over_fixture(name, fixture):
+    """Try iterating over a fixture, whether it is a sequence or generator."""
     if callable(fixture):
-        # TODO: make fixtures able to take other fixtures
-        fixture = fixture()
+        fixture = fixture()  # TODO: make fixtures able to take other fixtures
     try:
-        i = iter(fixture)
+        return iter(fixture)
     except Exception:
         raise Failure('fixture {!r} is not iterable'.format(name))
-    return i
 
 def run_test_with_arguments(module, test, code, args):
+    """Return the result of invoking a test with the given arguments."""
     try:
         test(*args)
     except AssertionError:
@@ -101,10 +109,12 @@ def run_test_with_arguments(module, test, code, args):
     return 'E', 'AssertionError', message, add_args(frames[-1:], args)
 
 def traceback_frames():
+    """Return all traceback frames for code outside of this file."""
     return [frame for frame in traceback.extract_tb(sys.exc_info()[2])
             if frame[0] != __file__]
 
 def add_args(frames, args):
+    """Rewrite traceback to show a test function was called with arguments."""
     filename, lineno, name, line = frames[-1]
     if len(args) == 1:
         name = '{}({!r})'.format(name, args[0])
