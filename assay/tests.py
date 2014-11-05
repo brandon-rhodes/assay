@@ -173,9 +173,10 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(result, [
             '.',
             '.',
-            ('E', 'AssertionError', 'it is false that 2 < 2', [
-                ('assay/samples.py', 25, 'test_fix2', 'assert fix2 < 2'),
+            ('E', 'AssertionError', 'it is false that 2 != 2', [
+                ('assay/samples.py', 25, 'test_fix2', 'assert fix2 != 2'),
                 ]),
+            '.',
             ])
 
 
