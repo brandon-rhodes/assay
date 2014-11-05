@@ -78,7 +78,7 @@ def iterate_over_fixture(name, fixture):
         try:
             i = fixture()
         except Exception as e:
-            raise Failure('Exception {} when calling {}()'.format(e, name))
+            raise Failure('fixture {}() raised {}'.format(name, e))
         if not isinstance(i, GeneratorType):
             raise Failure('fixture {}() is not a generator'.format(name))
     else:

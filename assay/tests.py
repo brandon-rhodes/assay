@@ -215,6 +215,15 @@ class ErrorMessageTests(unittest.TestCase):
                 ]),
             ])
 
+    def test_fix4(self):
+        result = self.execute(samples.test_fix4)
+        self.assertEqual(result, [
+            ('F', 'Failure', 'fixture test_exc() raised xyz', [
+                ('assay/samples.py', 0, 'test_fix4',
+                 'def test_fix4(test_exc):'),
+                ]),
+            ])
+
 
 class ImproveOrderTests(unittest.TestCase):
 

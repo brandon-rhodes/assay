@@ -30,3 +30,6 @@ def fix3():
     yield 1
     raise ValueError('xyz')
     yield 2
+
+def test_fix4(test_exc):
+    pass
