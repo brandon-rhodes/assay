@@ -132,6 +132,8 @@ class DiscoveryTests(unittest.TestCase):
 
 class ErrorMessageTests(unittest.TestCase):
 
+    maxDiff = 10000
+
     def execute(self, test):
         """Run the test, making strategic line-number adjustments.
 
