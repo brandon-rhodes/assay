@@ -36,12 +36,8 @@ def run_test(module, test):
         fixtures = []
         for name in names:
             fixture = getattr(module, name, _no_such_fixture)
-            if fixture is _no_such_fixture:#
-                line = linecache.getline(code.co_filename, code.co_firstlineno)
-                line = line.strip()
-                yield 'F', 'Failure', 'no such fixture {!r}'.format(name), [
-                    (code.co_filename, code.co_firstlineno, test.__name__, line)]
-                return
+            if fixture is _no_such_fixture:
+                raise Failure('no such fixture {!r}'.format(name))
             fixtures.append(fixture)
         for result in run_test_with_fixtures(module, test, code, names, fixtures, ()):
             yield result
