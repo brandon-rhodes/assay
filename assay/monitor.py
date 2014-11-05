@@ -51,7 +51,7 @@ def main_loop(arguments):
                     elif isinstance(obj, str):
                         write(obj)
                     else:
-                        write(repr(obj))
+                        pretty_print_exception(*obj)
                     test_count += 1
                     flush()
             paths = [path for name, path in worker.call(list_module_paths)]
@@ -91,3 +91,28 @@ def list_modules():
 
 def install_import_path(path):
     sys.modules.insert(0, path)
+
+def pretty_print_exception(character, name, message, frames):
+    frames = frames[1:]
+    print()
+    for tup in frames:
+        filename, line_number, function_name, text = tup
+        a = '  {} line {}'.format(filename, line_number)
+        b = 'in {}()'.format(function_name)
+        f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
+        print(f.format(a, b))
+        print('   ', blue(text))
+    print(' ', red(message))
+    print()
+
+def black(text): # ';47' does bg color
+    return '\033[1;30m' + str(text) + '\033[0m'
+
+def blue(text):
+    return '\033[1;35m' + str(text) + '\033[0m'
+
+def yellow(text):
+    return '\033[1;33m' + str(text) + '\033[0m'
+
+def red(text):
+    return '\033[1;31m' + str(text) + '\033[0m'

@@ -32,18 +32,18 @@ def run_tests_of(module_name):
 
 def run_test(module, test):
     code = test.__code__ if _python3 else test.func_code
-    if code.co_argcount:
-        names = inspect.getargs(code).args
-        fixtures = []
-        for name in names:
-            fixture = getattr(module, name, _no_such_fixture)
-            if fixture is _no_such_fixture:
-                raise TestFailure('no such fixture {}'.format(name))
-            fixtures.append(fixture)
-        for result in run_test_with_fixtures(module, test, code, names, fixtures, ()):
-            yield result
-    else:
+    if not code.co_argcount:
         yield run_test_with_arguments(module, test, code, ())
+        return
+    names = inspect.getargs(code).args
+    fixtures = []
+    for name in names:
+        fixture = getattr(module, name, _no_such_fixture)
+        if fixture is _no_such_fixture:
+            raise TestFailure('no such fixture {}'.format(name))
+        fixtures.append(fixture)
+    for result in run_test_with_fixtures(module, test, code, names, fixtures, ()):
+        yield result
 
 def run_test_with_fixtures(module, test, code, names, fixtures, args):
     name = names[0]
@@ -92,29 +92,3 @@ def run_test_with_arguments(module, test, code, args):
 
     message = rerun_failing_assert(test, code)
     return 'E', 'AssertionError', message, frames
-
-    def black(text): # ';47' does bg color
-        return '\033[1;30m' + str(text) + '\033[0m'
-
-    def blue(text):
-        return '\033[1;35m' + str(text) + '\033[0m'
-
-    def yellow(text):
-        return '\033[1;33m' + str(text) + '\033[0m'
-
-    def red(text):
-        return '\033[1;31m' + str(text) + '\033[0m'
-
-    if message is not None:
-        frames = traceback.extract_tb(tb)
-        frames = frames[1:]
-        print()
-        for tup in frames:
-            filename, line_number, function_name, text = tup
-            a = '  {} line {}'.format(filename, line_number)
-            b = 'in {}()'.format(function_name)
-            f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
-            print(f.format(a, b))
-            print('   ', blue(text))
-        print(' ', red(message))
-        print()
