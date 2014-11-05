@@ -1,9 +1,5 @@
-"""Sample tests for the Assay test suite.
+"""Sample tests for the Assay test suite to exercise."""
 
-Beware that the tests examine tracebacks that include line numbers, and
-are therefore sensitive to the exact line numbers of these functions.
-
-"""
 def test_passing():
     pass
 

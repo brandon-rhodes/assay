@@ -7,6 +7,7 @@ To run these tests, simply invoke::
 """
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
@@ -14,6 +15,8 @@ from . import samples
 from .discovery import interpret_argument
 from .importation import improve_order
 from .runner import run_test
+
+_python3 = (sys.version_info.major >= 3)
 
 # Tests.
 
@@ -129,65 +132,84 @@ class DiscoveryTests(unittest.TestCase):
 
 class ErrorMessageTests(unittest.TestCase):
 
+    def execute(self, test):
+        """Run the test, making strategic line-number adjustments.
+
+        Adjust line numbers to be relative to first line of the test
+        function, so that every one of these tests is not broken when an
+        additional line gets adding a line to the top of ``samples.py``.
+
+        """
+        code = test.__code__ if _python3 else test.func_code
+        base = code.co_firstlineno
+        result = list(run_test(samples, test))
+        for item in result:
+            if isinstance(item, tuple):
+                trace = item[3]
+                for i, frame in enumerate(trace):
+                    w, x, y, z = frame
+                    trace[i] = w, x - base, y, z
+        return result
+
     def test_passing(self):
-        result = list(run_test(samples, samples.test_passing))
+        result = self.execute(samples.test_passing)
         self.assertEqual(result, [
             '.',
             ])
 
     def test_raising_exception(self):
-        result = list(run_test(samples, samples.test_exc))
+        result = self.execute(samples.test_exc)
         self.assertEqual(result, [
             ('E', 'Exception', 'xyz', [
-                ('assay/samples.py', 11, 'test_exc', "raise Exception('xyz')"),
+                ('assay/samples.py', 1, 'test_exc', "raise Exception('xyz')"),
                 ]),
             ])
 
     def test_raising_exception_from_subroutine(self):
-        result = list(run_test(samples, samples.test_exc2))
+        result = self.execute(samples.test_exc2)
         self.assertEqual(result, [
             ('E', 'Exception', 'xyz', [
-                ('assay/samples.py', 14, 'test_exc2', "return test_exc()"),
-                ('assay/samples.py', 11, 'test_exc', "raise Exception('xyz')"),
+                ('assay/samples.py', 1, 'test_exc2', "return test_exc()"),
+                ('assay/samples.py', -2, 'test_exc', "raise Exception('xyz')"),
                 ]),
             ])
 
     def test_fix0(self):
-        result = list(run_test(samples, samples.test_fix0))
+        result = self.execute(samples.test_fix0)
         self.assertEqual(result, [
             ('F', 'Failure', "no such fixture 'fix0'", [
-                ('assay/samples.py', 16, 'test_fix0', 'def test_fix0(fix0):'),
+                ('assay/samples.py', 0, 'test_fix0', 'def test_fix0(fix0):'),
                 ]),
             ])
 
     def test_fix1(self):
-        result = list(run_test(samples, samples.test_fix1))
+        result = self.execute(samples.test_fix1)
         self.assertEqual(result, [
             ('F', 'Failure', "fixture 'fix1' is not iterable", [
-                ('assay/samples.py', 19, 'test_fix1', 'def test_fix1(fix1):'),
+                ('assay/samples.py', 0, 'test_fix1', 'def test_fix1(fix1):'),
                 ]),
             ])
 
     def test_fix2(self):
-        result = list(run_test(samples, samples.test_fix2))
+        result = self.execute(samples.test_fix2)
         self.assertEqual(result, [
             '.',
             '.',
             ('E', 'AssertionError', 'it is false that 2 != 2', [
-                ('assay/samples.py', 25, 'test_fix2', 'assert fix2 != 2'),
+                ('assay/samples.py', 1, 'test_fix2', 'assert fix2 != 2'),
                 ]),
             '.',
             ])
 
     def test_fix3(self):
-        result = list(run_test(samples, samples.test_fix3))
+        result = self.execute(samples.test_fix3)
         self.assertEqual(result, [
             '.',
             ('E', 'AssertionError', 'it is false that 1 != 1', [
-                ('assay/samples.py', 30, 'test_fix3', 'assert fix3 != 1'),
+                ('assay/samples.py', 1, 'test_fix3', 'assert fix3 != 1'),
                 ]),
             ('F', 'Failure', 'Exception xyz iterating over fix3', [
-                ('assay/samples.py', 29, 'test_fix3', 'def test_fix3(fix3):'),
+                ('assay/samples.py', 0, 'test_fix3', 'def test_fix3(fix3):'),
                 ]),
             ])
 
