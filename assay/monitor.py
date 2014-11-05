@@ -8,7 +8,7 @@ from time import time
 from .discovery import interpret_argument, search_argument
 from .filesystem import Filesystem
 from .importation import import_module, improve_order, list_module_paths
-from .runner import TestFailure, run_test
+from .runner import run_tests_of
 from .worker import Worker
 
 def f():
@@ -48,7 +48,10 @@ def main_loop(arguments):
                     obj = worker.next()
                     if obj is StopIteration:
                         break
-                    write(obj)
+                    elif isinstance(obj, str):
+                        write(obj)
+                    else:
+                        write(repr(obj))
                     flush()
             paths = [path for name, path in worker.call(list_module_paths)]
         print()
@@ -82,26 +85,8 @@ def restart():
 def speculatively_import_then_loop(import_order, ):
     pass
 
-
 def list_modules():
     return list(sys.modules)
 
 def install_import_path(path):
     sys.modules.insert(0, path)
-
-def run_tests_of(module_name):
-    module = import_module(module_name)
-    d = module.__dict__
-
-    test_names = sorted(k for k in d if k.startswith('test_'))
-    candidates = [d[k] for k in test_names]
-    tests = [t for t in candidates if t.__module__ == module_name]
-
-    for test in tests:
-        try:
-            run_test(module, test)
-        except TestFailure as e:
-            yield 'E'
-            #print(e)
-        else:
-            yield '.'
