@@ -76,17 +76,12 @@ def generate_arguments_from_fixtures(module, names):
 
 def iterate_over_fixture(name, fixture):
     if callable(fixture):
-        # try:
-        i = fixture()
-        # except Exception as e:
-        #     raise Failure('fixture {}() raised {}'.format(name, e))
-        if not isinstance(i, GeneratorType):
-            raise Failure('fixture {}() is not a generator'.format(name))
-    else:
-        try:
-            i = iter(fixture)
-        except Exception as e:
-            raise Failure('fixture {!r} is not iterable'.format(name))
+        # TODO: make fixtures able to take other fixtures
+        fixture = fixture()
+    try:
+        i = iter(fixture)
+    except Exception:
+        raise Failure('fixture {!r} is not iterable'.format(name))
     return i
 
 def run_test_with_arguments(module, test, code, args):
