@@ -42,10 +42,11 @@ def run_test(module, test):
         for result in run_test_with_fixtures(module, test, code, names, fixtures, ()):
             yield result
     except Failure as e:
-        line = linecache.getline(code.co_filename, code.co_firstlineno)
-        line = line.strip()
+        filename = code.co_filename
+        firstlineno = code.co_firstlineno
+        line = linecache.getline(filename, firstlineno).strip()
         yield 'F', 'Failure', str(e), [
-            (code.co_filename, code.co_firstlineno, test.__name__, line)]
+            (filename, firstlineno, test.__name__, line)]
 
 def run_test_with_fixtures(module, test, code, names, fixtures, args):
     name = names[0]
