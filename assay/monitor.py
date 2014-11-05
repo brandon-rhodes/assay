@@ -52,6 +52,7 @@ def main_loop(arguments):
                         write(obj)
                     else:
                         write(repr(obj))
+                    test_count += 1
                     flush()
             paths = [path for name, path in worker.call(list_module_paths)]
         print()
