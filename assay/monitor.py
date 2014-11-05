@@ -21,7 +21,6 @@ def main_loop(arguments):
     flush = sys.stdout.flush
 
     items = [interpret_argument(worker, argument) for argument in arguments]
-    print(items)
 
     main_process_paths = set(path for name, path in list_module_paths())
     file_watcher = Filesystem()
@@ -41,19 +40,24 @@ def main_loop(arguments):
             # pprint(events)
             # print('  {} seconds'.format(time() - t0))
             # print()
+            test_count = 0
             for name in names:
-                worker.call(run_tests_of, name)
+                test_count += worker.call(run_tests_of, name)
             paths = [path for name, path in worker.call(list_module_paths)]
         print()
         dt = time() - t0
-        print('Tests took {:.2f} seconds'.format(dt))
+        print('{} tests took {:.2f} seconds'.format(test_count, dt))
+
+        if not sys.stdout.isatty():
+            break
+
         print('Watching', len(paths), 'paths', end='...')
         flush()
         file_watcher.add_paths(paths)
         changes = file_watcher.wait()
         paths = [os.path.join(directory, filename)
                  for directory, filename in changes]
-        print(paths)
+
         main_process_changes = main_process_paths.intersection(paths)
         if main_process_changes:
             example_path = main_process_changes.pop()
@@ -91,3 +95,5 @@ def run_tests_of(module_name):
             run_test(module, test)
         except TestFailure as e:
             print(e)
+
+    return len(tests)
