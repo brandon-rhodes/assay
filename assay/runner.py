@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import inspect
+import linecache
 import sys
 import traceback
 from .assertion import rerun_failing_assert
@@ -39,8 +40,12 @@ def run_test(module, test):
     fixtures = []
     for name in names:
         fixture = getattr(module, name, _no_such_fixture)
-        if fixture is _no_such_fixture:
-            raise TestFailure('no such fixture {}'.format(name))
+        if fixture is _no_such_fixture:#
+            line = linecache.getline(code.co_filename, code.co_firstlineno)
+            line = line.strip()
+            yield 'F', 'Failure', 'no such fixture {!r}'.format(name), [
+                (code.co_filename, code.co_firstlineno, test.__name__, line)]
+            return
         fixtures.append(fixture)
     for result in run_test_with_fixtures(module, test, code, names, fixtures, ()):
         yield result
@@ -90,5 +95,5 @@ def run_test_with_arguments(module, test, code, args):
     else:
         return '.'
 
-    message = rerun_failing_assert(test, code)
+    message = rerun_failing_assert(test, code, args)
     return 'E', 'AssertionError', message, frames

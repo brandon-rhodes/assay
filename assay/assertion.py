@@ -20,7 +20,7 @@ class AssayCompareError(Exception):
 
 additional_consts = dis.cmp_op + (AssayCompareError,)
 
-def rerun_failing_assert(test, code_object):
+def rerun_failing_assert(test, code_object, args):
     """Re-run test() after rewriting its asserts for introspection."""
 
     c = code_object
@@ -74,7 +74,7 @@ def rerun_failing_assert(test, code_object):
         test.func_code = new_func_code
 
     try:
-        test()
+        test(*args)
     except AssayCompareError as e:
         return 'BUT {!r}\n   {} {!r}'.format(e.a, e.symbol, e.b)
     else:

@@ -152,6 +152,14 @@ class ErrorMessageTests(unittest.TestCase):
                 ]),
             ])
 
+    def test_fix0(self):
+        result = list(run_test(samples, samples.test_fix0))
+        self.assertEqual(result, [
+            ('F', 'Failure', "no such fixture 'fix0'", [
+                ('assay/samples.py', 16, 'test_fix0', 'def test_fix0(fix0):'),
+                ]),
+            ])
+
 
 class ImproveOrderTests(unittest.TestCase):
 
