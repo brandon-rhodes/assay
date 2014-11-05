@@ -76,7 +76,7 @@ def rerun_failing_assert(test, code_object, args):
     try:
         test(*args)
     except AssayCompareError as e:
-        return 'BUT {!r}\n   {} {!r}'.format(e.a, e.symbol, e.b)
+        return 'it is false that {!r} {} {!r}'.format(e.a, e.symbol, e.b)
     else:
         return 'drat, no exception was raised the second time'
 

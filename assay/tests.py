@@ -168,6 +168,16 @@ class ErrorMessageTests(unittest.TestCase):
                 ]),
             ])
 
+    def test_fix2(self):
+        result = list(run_test(samples, samples.test_fix2))
+        self.assertEqual(result, [
+            '.',
+            '.',
+            ('E', 'AssertionError', 'it is false that 2 < 2', [
+                ('assay/samples.py', 25, 'test_fix2', 'assert fix2 < 2'),
+                ]),
+            ])
+
 
 class ImproveOrderTests(unittest.TestCase):
 

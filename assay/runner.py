@@ -78,6 +78,8 @@ def iterate_over_fixture(name, fixture):
     while True:
         try:
             item = next(i)
+        except StopIteration:
+            break
         except Exception as e:
             raise Failure('Exception {} iterating over {}'.format(e, name))
         yield item
@@ -96,4 +98,4 @@ def run_test_with_arguments(module, test, code, args):
         return '.'
 
     message = rerun_failing_assert(test, code, args)
-    return 'E', 'AssertionError', message, frames
+    return 'E', 'AssertionError', message, frames[-1:]

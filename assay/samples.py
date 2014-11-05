@@ -21,3 +21,7 @@ def test_fix1(fix1):
 
 fix1 = None
 
+def test_fix2(fix2):
+    assert fix2 < 2
+
+fix2 = [0, 1, 2]
