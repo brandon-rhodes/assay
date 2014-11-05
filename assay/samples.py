@@ -9,3 +9,6 @@ def test_passing():
 
 def test_exc():
     raise Exception('xyz')
+
+def test_exc2():
+    return test_exc()

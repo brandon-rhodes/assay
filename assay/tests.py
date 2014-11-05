@@ -129,16 +129,25 @@ class DiscoveryTests(unittest.TestCase):
 
 class ErrorMessageTests(unittest.TestCase):
 
-    def test_passing_test(self):
+    def test_passing(self):
         result = list(run_test(samples, samples.test_passing))
         self.assertEqual(result, [
             '.',
             ])
 
-    def test_exception_test(self):
+    def test_raising_exception(self):
         result = list(run_test(samples, samples.test_exc))
         self.assertEqual(result, [
             ('E', 'Exception', 'xyz', [
+                ('assay/samples.py', 11, 'test_exc', "raise Exception('xyz')"),
+                ]),
+            ])
+
+    def test_raising_exception_from_subroutine(self):
+        result = list(run_test(samples, samples.test_exc2))
+        self.assertEqual(result, [
+            ('E', 'Exception', 'xyz', [
+                ('assay/samples.py', 14, 'test_exc2', "return test_exc()"),
                 ('assay/samples.py', 11, 'test_exc', "raise Exception('xyz')"),
                 ]),
             ])
