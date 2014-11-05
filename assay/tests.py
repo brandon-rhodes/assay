@@ -160,6 +160,14 @@ class ErrorMessageTests(unittest.TestCase):
                 ]),
             ])
 
+    def test_fix1(self):
+        result = list(run_test(samples, samples.test_fix1))
+        self.assertEqual(result, [
+            ('F', 'Failure', "fixture 'fix1' is not iterable", [
+                ('assay/samples.py', 19, 'test_fix1', 'def test_fix1(fix1):'),
+                ]),
+            ])
+
 
 class ImproveOrderTests(unittest.TestCase):
 

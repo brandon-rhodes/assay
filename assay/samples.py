@@ -16,7 +16,8 @@ def test_exc2():
 def test_fix0(fix0):
     assert fix0 < 2
 
-# def test_fix1(fix1):
-#     assert fix1 < 2
+def test_fix1(fix1):
+    assert fix1 < 2
 
-# fix1 = [0, 1, 2]
+fix1 = None
+
