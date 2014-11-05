@@ -196,7 +196,7 @@ class ErrorMessageTests(unittest.TestCase):
             '.',
             '.',
             ('E', 'AssertionError', 'it is false that 2 != 2', [
-                ('assay/samples.py', 1, 'test_fix2', 'assert fix2 != 2'),
+                ('assay/samples.py', 1, 'test_fix2(2)', 'assert fix2 != 2'),
                 ]),
             '.',
             ])
@@ -206,10 +206,12 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(result, [
             '.',
             ('E', 'AssertionError', 'it is false that 1 != 1', [
-                ('assay/samples.py', 1, 'test_fix3', 'assert fix3 != 1'),
+                ('assay/samples.py', 1, 'test_fix3(1)', 'assert fix3 != 1'),
                 ]),
-            ('F', 'Failure', 'Exception xyz iterating over fix3', [
-                ('assay/samples.py', 0, 'test_fix3', 'def test_fix3(fix3):'),
+            ('E', 'ValueError', 'xyz', [
+                ('assay/runner.py', 42, 'generate_arguments_from_fixtures',
+                 'args[j] = next(iterators[j])'),
+                ('assay/samples.py', 6, 'fix3(1)', "raise ValueError('xyz')"),
                 ]),
             ])
 

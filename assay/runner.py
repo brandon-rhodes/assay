@@ -5,6 +5,7 @@ import inspect
 import linecache
 import sys
 import traceback
+from types import GeneratorType
 from .assertion import rerun_failing_assert
 from .importation import import_module
 
@@ -27,41 +28,50 @@ def run_tests_of(module_name):
             yield result
 
 def run_test(module, test):
+    args = ()
+    code = test.__code__ if _python3 else test.func_code
     try:
-        code = test.__code__ if _python3 else test.func_code
         if not code.co_argcount:
-            yield run_test_with_arguments(module, test, code, ())
+            yield run_test_with_arguments(module, test, code, args)
             return
         names = inspect.getargs(code).args
-        fixtures = []
-        for name in names:
-            fixture = getattr(module, name, _no_such_fixture)
-            if fixture is _no_such_fixture:
-                raise Failure('no such fixture {!r}'.format(name))
-            fixtures.append(fixture)
-        for result in run_test_with_fixtures(module, test, code, names, fixtures, ()):
-            yield result
+        for args in generate_arguments_from_fixtures(module, names):
+            yield run_test_with_arguments(module, test, code, args)
     except Failure as e:
         filename = code.co_filename
         firstlineno = code.co_firstlineno
         line = linecache.getline(filename, firstlineno).strip()
-        yield 'F', 'Failure', str(e), [
-            (filename, firstlineno, test.__name__, line)]
+        frames = [(filename, firstlineno, test.__name__, line)]
+        yield 'F', 'Failure', str(e), add_args(frames, args)
+    except Exception as e:
+        tb = sys.exc_info()[2]
+        frames = traceback.extract_tb(tb)[1:]
+        yield 'E', e.__class__.__name__, str(e), add_args(frames, args)
 
-def run_test_with_fixtures(module, test, code, names, fixtures, args):
-    name = names[0]
-    fixture = fixtures[0]
-    if len(fixtures) == 1:
-        for item in iterate_over_fixture(name, fixture):
-            yield run_test_with_arguments(module, test, code, args + (item,))
-    else:
-        remaining_names = names[1:]
-        remaining_fixtures = fixtures[1:]
-        for item in iterate_over_fixture(name, fixture):
-            for result in run_test_with_fixtures(
-                    module, test, code, remaining_names,
-                    remaining_fixtures, args + (item,)):
-                yield result
+def find_fixture(module, name):
+    fixture = getattr(module, name, _no_such_fixture)
+    if fixture is _no_such_fixture:
+        raise Failure('no such fixture {!r}'.format(name))
+    return fixture
+
+def generate_arguments_from_fixtures(module, names):
+    fixtures = [find_fixture(module, name) for name in names]
+    iterators = [iterate_over_fixture(name, fixture) for name, fixture
+                 in zip(names, fixtures)]
+    args = [next(i) for i in iterators]
+    backwards = list(reversed(range(len(iterators))))
+    while True:
+        yield tuple(args)
+        for j in backwards:
+            try:
+                args[j] = next(iterators[j])
+            except StopIteration:
+                iterators[j] = iterate_over_fixture(names[j], fixtures[j])
+                args[j] = next(iterators[j])
+            else:
+                break
+        else:
+            return
 
 def iterate_over_fixture(name, fixture):
     if callable(fixture):
@@ -69,20 +79,14 @@ def iterate_over_fixture(name, fixture):
             i = fixture()
         except Exception as e:
             raise Failure('Exception {} when calling {}()'.format(e, name))
-        # TODO: check that it is a generator
+        if not isinstance(i, GeneratorType):
+            raise Failure('fixture {}() is not a generator'.format(name))
     else:
         try:
             i = iter(fixture)
         except Exception as e:
             raise Failure('fixture {!r} is not iterable'.format(name))
-    while True:
-        try:
-            item = next(i)
-        except StopIteration:
-            break
-        except Exception as e:
-            raise Failure('Exception {} iterating over {}'.format(e, name))
-        yield item
+    return i
 
 def run_test_with_arguments(module, test, code, args):
     try:
@@ -93,9 +97,18 @@ def run_test_with_arguments(module, test, code, args):
     except Exception as e:
         tb = sys.exc_info()[2]
         frames = traceback.extract_tb(tb)[1:]
-        return 'E', e.__class__.__name__, str(e), frames
+        return 'E', e.__class__.__name__, str(e), add_args(frames, args)
     else:
         return '.'
 
     message = rerun_failing_assert(test, code, args)
-    return 'E', 'AssertionError', message, frames[-1:]
+    return 'E', 'AssertionError', message, add_args(frames[-1:], args)
+
+def add_args(frames, args):
+    filename, lineno, name, line = frames[-1]
+    if len(args) == 1:
+        name = '{}({!r})'.format(name, args[0])
+    elif args:
+        name = '{}{!r}'.format(name, args)
+    frames[-1] = (filename, lineno, name, line)
+    return frames
