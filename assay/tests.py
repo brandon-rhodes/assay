@@ -10,8 +10,10 @@ import shutil
 import tempfile
 import unittest
 from contextlib import contextmanager
+from . import samples
 from .discovery import interpret_argument
 from .importation import improve_order
+from .runner import run_test
 
 # Tests.
 
@@ -124,6 +126,24 @@ class DiscoveryTests(unittest.TestCase):
             self.assertEqual(interpret_argument(None, 'b/p1/p2'),
                              ('b', 'p1.p2'))
 
+
+class ErrorMessageTests(unittest.TestCase):
+
+    def test_passing_test(self):
+        result = list(run_test(samples, samples.test_passing))
+        self.assertEqual(result, [
+            '.',
+            ])
+
+    def test_exception_test(self):
+        result = list(run_test(samples, samples.test_exc))
+        self.assertEqual(result, [
+            ('E', 'Exception', 'xyz', [
+                ('assay/samples.py', 11, 'test_exc', "raise Exception('xyz')"),
+                ]),
+            ])
+
+
 class ImproveOrderTests(unittest.TestCase):
 
     # We assume that module B imports A, C imports B, D imports C, et
@@ -215,6 +235,7 @@ class ImproveOrderTests(unittest.TestCase):
             ]
         self.assertEqual(improve_order(events),
                          ['A', 'X', 'B', 'C', 'Y', 'Z', 'D', 'E'])
+
 
 if __name__ == '__main__':
     unittest.main()

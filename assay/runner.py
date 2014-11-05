@@ -85,7 +85,7 @@ def run_test_with_arguments(module, test, code, args):
         frames = traceback.extract_tb(tb)
     except Exception as e:
         tb = sys.exc_info()[2]
-        frames = traceback.extract_tb(tb)
+        frames = traceback.extract_tb(tb)[1:]
         return 'E', e.__class__.__name__, str(e), frames
     else:
         return '.'
