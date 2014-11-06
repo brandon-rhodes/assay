@@ -57,11 +57,7 @@ class Worker(object):
         return pickle.load(self.from_child)
 
     def fileno(self):
-        """Return the file descriptor on which the child sends us data.
-
-        This method allows an `epoll.wait()` on a `Worker` object.
-
-        """
+        """Return the incoming file descriptor, for `epoll()` objects."""
         return self.from_child.fileno()
 
     def __enter__(self):
@@ -74,7 +70,9 @@ class Worker(object):
         assert self.next() == 'worker process popped'
 
     def close(self):
-        """Close file descriptors, which tells the worker to shut down."""
+        """Kill the worker and close our file descriptors."""
+        while self.pids:
+            os.kill(self.pids.pop(), signal.SIGKILL)
         self.to_child.close()
         self.from_child.close()
 
@@ -98,10 +96,7 @@ def worker_task(pipes):
     to_parent, from_parent = pipes
 
     while True:
-        try:
-            function, args, kw = pickle.load(from_parent)
-        except EOFError:
-            os._exit(0)
+        function, args, kw = pickle.load(from_parent)
         result = function(*args, **kw)
         if isinstance(result, GeneratorType):
             for item in result:
