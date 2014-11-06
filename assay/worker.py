@@ -27,10 +27,6 @@ class Worker(object):
             os.close(from_child)
             to_parent = os.fdopen(to_parent, 'wb')
             from_parent = os.fdopen(from_parent, 'rb')
-
-            pickle.dump('ok', to_parent, 2)
-            to_parent.flush()
-
             raise TransformIntoWorker(to_parent, from_parent)
 
         self.pids = [child_pid]
@@ -38,8 +34,6 @@ class Worker(object):
         os.close(from_parent)
         self.to_child = os.fdopen(to_child, 'wb')
         self.from_child = os.fdopen(from_child, 'rb', 0)
-
-        assert pickle.load(self.from_child) == 'ok'
 
     def call(self, function, *args, **kw):
         """Run a function in the worker process and return its result."""
