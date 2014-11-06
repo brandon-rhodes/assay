@@ -1,6 +1,7 @@
 """A worker process that can respond to commands."""
 
 import os
+import signal
 import sys
 from types import GeneratorType
 
@@ -32,6 +33,7 @@ class Worker(object):
 
             raise TransformIntoWorker(to_parent, from_parent)
 
+        self.pids = [child_pid]
         os.close(to_parent)
         os.close(from_parent)
         self.to_child = os.fdopen(to_child, 'wb')
@@ -64,11 +66,12 @@ class Worker(object):
 
     def __enter__(self):
         """During a 'with' statement, run commands in a clone of the worker."""
-        assert self.call(push) == 'worker process pushed'
+        self.pids.append(self.call(push))
 
     def __exit__(self, a,b,c):
         """When the 'with' statement ends, have the clone exit."""
-        assert self.call(pop) == 'worker process popped'
+        os.kill(self.pids.pop(), signal.SIGKILL)
+        assert self.next() == 'worker process popped'
 
     def close(self):
         """Close file descriptors, which tells the worker to shut down."""
@@ -79,12 +82,9 @@ def push():
     """Fork a child worker, who will own the pipe until it exits."""
     child_pid = os.fork()
     if not child_pid:
-        return 'worker process pushed'
+        return os.getpid()
     os.waitpid(child_pid, 0)
     return 'worker process popped'
-
-def pop():
-    """This is implemented as a special case in worker_task(), below."""
 
 def worker_task(pipes):
     """Run functions piped to us from the parent process.
@@ -101,8 +101,6 @@ def worker_task(pipes):
         try:
             function, args, kw = pickle.load(from_parent)
         except EOFError:
-            os._exit(0)
-        if function is pop:
             os._exit(0)
         result = function(*args, **kw)
         if isinstance(result, GeneratorType):
