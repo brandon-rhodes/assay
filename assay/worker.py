@@ -27,7 +27,7 @@ class Worker(object):
             to_parent = os.fdopen(to_parent, 'wb')
             from_parent = os.fdopen(from_parent, 'rb')
 
-            pickle.dump('ok', to_parent)
+            pickle.dump('ok', to_parent, 2)
             to_parent.flush()
 
             raise TransformIntoWorker(to_parent, from_parent)
@@ -107,10 +107,10 @@ def worker_task(pipes):
         result = function(*args, **kw)
         if isinstance(result, GeneratorType):
             for item in result:
-                pickle.dump(item, to_parent)
+                pickle.dump(item, to_parent, 2)
                 to_parent.flush()
-            pickle.dump(StopIteration, to_parent)
+            pickle.dump(StopIteration, to_parent, 2)
             to_parent.flush()
         else:
-            pickle.dump(result, to_parent)
+            pickle.dump(result, to_parent, 2)
             to_parent.flush()
