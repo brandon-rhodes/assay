@@ -45,10 +45,10 @@ def main_loop(arguments):
             # pprint(events)
             # print('  {} seconds'.format(time() - t0))
             # print()
-            test_count = 0
-            #workers = {w.fileno(): w for w in [worker]}
+
+            successes = failures = 0
             worker_fds = {w.fileno(): w for w in workers}
-            #workers = {w.fileno(): w for w in [worker, worker2, worker3]}
+
             poller = select.epoll()
             for w in workers:
                 if names:
@@ -68,17 +68,23 @@ def main_loop(arguments):
                         else:
                             poller.unregister(w)
                             del worker_fds[fd]
-                        continue
                     elif isinstance(result, str):
-                        write(result)
+                        write('.')
+                        flush()
+                        successes += 1
                     else:
                         pretty_print_exception(*result)
-                    test_count += 1
-                    flush()
+                        flush()
+                        failures += 1
             paths = [path for name_, path in worker.call(list_module_paths)]
         print()
         dt = time() - t0
-        print('{} tests took {:.2f} seconds'.format(test_count, dt))
+        if failures:
+            tally = red('{} of {} tests failed'.format(
+                failures, successes + failures))
+        else:
+            tally = green('All {} tests passed'.format(successes))
+        print('{} in {:.2f} seconds'.format(tally, dt))
 
         if not sys.stdout.isatty():
             break
