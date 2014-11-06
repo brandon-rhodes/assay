@@ -39,7 +39,8 @@ def run_tests_of(module_name):
     """Run all tests discovered inside of a module."""
     module = import_module(module_name)
     tests = sorted((k, v) for k, v in module.__dict__.items()
-                   if k.startswith('test_') and v.__module__ == module_name)
+                   if k.startswith('test_')
+                   and getattr(v, '__module__', '') == module_name)
 
     for name, test in tests:
         for result in run_test(module, test):

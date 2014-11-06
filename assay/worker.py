@@ -35,7 +35,7 @@ class Worker(object):
         os.close(to_parent)
         os.close(from_parent)
         self.to_child = os.fdopen(to_child, 'wb')
-        self.from_child = os.fdopen(from_child, 'rb')
+        self.from_child = os.fdopen(from_child, 'rb', 0)
 
         assert pickle.load(self.from_child) == 'ok'
 
@@ -57,8 +57,7 @@ class Worker(object):
     def fileno(self):
         """Return the file descriptor on which the child sends us data.
 
-        This method allows a `Worker` object to be supplied directly to
-        a poll or select object from the Standard Library.
+        This method allows an `epoll.wait()` on a `Worker` object.
 
         """
         return self.from_child.fileno()
@@ -70,6 +69,10 @@ class Worker(object):
     def __exit__(self, a,b,c):
         """When the 'with' statement ends, have the clone exit."""
         assert self.call(pop) == 'worker process popped'
+
+    def close(self):
+        self.to_child.close()
+        self.from_child.close()
 
 def push():
     """Fork a child worker, who will own the pipe until it exits."""

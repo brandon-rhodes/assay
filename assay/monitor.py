@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import os
+import select
 import sys
 from time import time
 from .discovery import interpret_argument, search_argument
@@ -18,6 +19,8 @@ python3 = (sys.version_info.major >= 3)
 
 def main_loop(arguments):
     worker = Worker()
+    worker2 = Worker()
+    worker3 = Worker()
     write = sys.stdout.write
     flush = sys.stdout.flush
 
@@ -30,7 +33,7 @@ def main_loop(arguments):
         # import_order = improve_order(import_order, dangers)
         # print('Importing {}'.format(module_names))
         t0 = time()
-        with worker:
+        with worker, worker2, worker3:
             names = []
             for item in items:
                 import_path, import_name = item
@@ -42,20 +45,34 @@ def main_loop(arguments):
             # print('  {} seconds'.format(time() - t0))
             # print()
             test_count = 0
-            for name in names:
-                worker.start(capture_stdout_stderr, run_tests_of, name)
-                # worker.start(run_tests_of, name)
-                while True:
-                    obj = worker.next()
+            #workers = {w.fileno(): w for w in [worker]}
+            workers = {w.fileno(): w for w in [worker, worker2]}
+            #workers = {w.fileno(): w for w in [worker, worker2, worker3]}
+            poller = select.epoll()
+            for w in workers.values():
+                name = names.pop()
+                w.start(capture_stdout_stderr, run_tests_of, name)
+                # w.start(run_tests_of, name)
+                poller.register(w, select.EPOLLIN)
+            while workers:
+                for fd, flags in poller.poll():
+                    w = workers[fd]
+                    obj = w.next()
                     if obj is StopIteration:
-                        break
+                        if names:
+                            name = names.pop()
+                            w.start(capture_stdout_stderr, run_tests_of, name)
+                            # w.start(run_tests_of, name)
+                        else:
+                            del workers[fd]
+                        continue
                     elif isinstance(obj, str):
                         write(obj)
                     else:
                         pretty_print_exception(*obj)
                     test_count += 1
                     flush()
-            paths = [path for name, path in worker.call(list_module_paths)]
+            paths = [path for name_, path in worker.call(list_module_paths)]
         print()
         dt = time() - t0
         print('{} tests took {:.2f} seconds'.format(test_count, dt))
@@ -76,6 +93,9 @@ def main_loop(arguments):
             print()
             print('Detected edit to {}'.format(example_path))
             print(' Restart '.center(79, '='))
+            worker.close()
+            worker2.close()
+            worker3.close()
             restart()
         print()
         print('Running tests')
