@@ -71,6 +71,7 @@ class Worker(object):
         assert self.call(pop) == 'worker process popped'
 
     def close(self):
+        """Close file descriptors, which tells the worker to shut down."""
         self.to_child.close()
         self.from_child.close()
 

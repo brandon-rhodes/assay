@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import contextlib
 import os
 import select
 import sys
@@ -19,8 +20,8 @@ python3 = (sys.version_info.major >= 3)
 
 def main_loop(arguments):
     worker = Worker()
-    worker2 = Worker()
-    worker3 = Worker()
+    workers = [worker, Worker()]
+
     write = sys.stdout.write
     flush = sys.stdout.flush
 
@@ -33,7 +34,7 @@ def main_loop(arguments):
         # import_order = improve_order(import_order, dangers)
         # print('Importing {}'.format(module_names))
         t0 = time()
-        with worker, worker2, worker3:
+        with contextlib.nested(*workers):
             names = []
             for item in items:
                 import_path, import_name = item
@@ -46,30 +47,32 @@ def main_loop(arguments):
             # print()
             test_count = 0
             #workers = {w.fileno(): w for w in [worker]}
-            workers = {w.fileno(): w for w in [worker, worker2]}
+            worker_fds = {w.fileno(): w for w in workers}
             #workers = {w.fileno(): w for w in [worker, worker2, worker3]}
             poller = select.epoll()
-            for w in workers.values():
-                name = names.pop()
-                w.start(capture_stdout_stderr, run_tests_of, name)
-                # w.start(run_tests_of, name)
-                poller.register(w, select.EPOLLIN)
-            while workers:
+            for w in workers:
+                if names:
+                    name = names.pop()
+                    w.start(capture_stdout_stderr, run_tests_of, name)
+                    # w.start(run_tests_of, name)
+                    poller.register(w, select.EPOLLIN)
+            while worker_fds:
                 for fd, flags in poller.poll():
-                    w = workers[fd]
-                    obj = w.next()
-                    if obj is StopIteration:
+                    w = worker_fds[fd]
+                    result = w.next()
+                    if result is StopIteration:
                         if names:
                             name = names.pop()
                             w.start(capture_stdout_stderr, run_tests_of, name)
                             # w.start(run_tests_of, name)
                         else:
-                            del workers[fd]
+                            poller.unregister(w)
+                            del worker_fds[fd]
                         continue
-                    elif isinstance(obj, str):
-                        write(obj)
+                    elif isinstance(result, str):
+                        write(result)
                     else:
-                        pretty_print_exception(*obj)
+                        pretty_print_exception(*result)
                     test_count += 1
                     flush()
             paths = [path for name_, path in worker.call(list_module_paths)]
@@ -93,9 +96,8 @@ def main_loop(arguments):
             print()
             print('Detected edit to {}'.format(example_path))
             print(' Restart '.center(79, '='))
-            worker.close()
-            worker2.close()
-            worker3.close()
+            for w in workers:
+                w.close()
             restart()
         print()
         print('Running tests')
