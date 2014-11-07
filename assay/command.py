@@ -6,6 +6,7 @@ import sys
 from . import interactivity, monitor
 
 def main():
+    os.environ['PYTHONDONTWRITEBYTECODE'] = 'please'
     sys.dont_write_bytecode = True
     parser = argparse.ArgumentParser(prog='assay')
     parser.description = 'Fast testing framework'
