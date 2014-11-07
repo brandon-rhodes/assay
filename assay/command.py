@@ -2,7 +2,7 @@
 
 import argparse
 import sys
-from . import monitor
+from . import interactivity, monitor
 
 def main():
     sys.dont_write_bytecode = True
@@ -11,4 +11,5 @@ def main():
     parser.add_argument('name', nargs='+',
                         help='directory, package, or module to test')
     args = parser.parse_args()
-    monitor.main_loop(args.name, True)
+    with interactivity.configure_tty() as is_interactive:
+        monitor.main_loop(args.name, is_interactive)

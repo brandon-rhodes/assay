@@ -18,7 +18,7 @@ def f():
 
 python3 = (sys.version_info.major >= 3)
 
-def main_loop(arguments, interactive):
+def main_loop(arguments, is_interactive):
     worker = Worker()
     workers = [worker, Worker()]
 
