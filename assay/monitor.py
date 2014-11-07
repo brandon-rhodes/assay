@@ -4,9 +4,9 @@ from __future__ import print_function
 
 import contextlib
 import os
-import select
 import sys
 from time import time
+from . import unix
 from .discovery import interpret_argument, search_argument
 from .filesystem import Filesystem
 from .importation import import_module, improve_order, list_module_paths
@@ -28,8 +28,22 @@ def main_loop(arguments, is_interactive):
     main_process_paths = set(path for name, path in list_module_paths())
     file_watcher = Filesystem()
 
+    poller = unix.Poller()
+    if is_interactive:
+        poller.register(sys.stdin)
+
     try:
-        while True:
+        for source, flags in poller.events():
+
+            if source is sys.stdin:
+                for keystroke in sys.stdin.read():
+                    print('got {}'.format(keystroke))
+                    if keystroke == 'q':
+                        sys.exit()
+                    elif keystroke == 'r':
+                        raise Restart()
+
+            break
             # import_order = improve_order(import_order, dangers)
             # print('Importing {}'.format(module_names))
             t0 = time()
@@ -46,11 +60,7 @@ def main_loop(arguments, is_interactive):
                 # print()
 
                 successes = failures = 0
-                worker_fds = {w.fileno(): w for w in workers}
 
-                poller = select.epoll()
-                if is_interactive:
-                    poller.register(sys.stdin, select.EPOLLIN)
                 for w in workers:
                     if names:
                         name = names.pop()
@@ -60,14 +70,6 @@ def main_loop(arguments, is_interactive):
                 while worker_fds:
                     for fd, flags in poller.poll():
                         w = worker_fds.get(fd)
-                        if w is None:
-                            for keystroke in sys.stdin.read():
-                                print('got {}'.format(keystroke))
-                                if keystroke == 'q':
-                                    sys.exit()
-                                elif keystroke == 'r':
-                                    raise Restart()
-                            continue
                         result = w.next()
                         if result is StopIteration:
                             if names:

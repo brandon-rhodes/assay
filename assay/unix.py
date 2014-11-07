@@ -2,6 +2,7 @@
 
 import fcntl
 import os
+import select
 import signal
 import sys
 import termios
@@ -41,3 +42,25 @@ def close_on_exec(fd):
 def kill_dash_9(pid):
     """Kill a process with a signal that cannot be caught or ignored."""
     os.kill(pid, signal.SIGKILL)
+
+class Poller(object):
+    """File descriptor polling object that returns objects, not integers."""
+
+    def __init__(self):
+        self.fdmap = {}
+        self.poller = select.epoll()
+
+    def register(self, obj, flags=select.EPOLLIN):
+        fd = obj.fileno()
+        self.fdmap[fd] = obj
+        self.poller.register(fd, flags)
+
+    def unregister(self, obj):
+        fd = obj.fileno()
+        del self.fdmap[fd]
+        self.poller.unregister(fd)
+
+    def events(self):
+        while True:
+            for fd, flags in self.poller.poll():
+                yield self.fdmap[fd], flags
