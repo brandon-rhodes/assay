@@ -26,9 +26,12 @@ def main_loop(arguments, is_interactive):
     items = [interpret_argument(worker, argument) for argument in arguments]
 
     main_process_paths = set(path for name, path in list_module_paths())
-    file_watcher = Filesystem()
 
-    poller = unix.Poller()
+    file_watcher = Filesystem()
+    file_watcher.add_paths(main_process_paths)
+
+    poller = unix.EPoll()
+    poller.register(file_watcher)
     if is_interactive:
         poller.register(sys.stdin)
 
@@ -43,7 +46,21 @@ def main_loop(arguments, is_interactive):
                     elif keystroke == 'r':
                         raise Restart()
 
-            break
+            elif source is file_watcher:
+                changes = file_watcher.read()
+                # if not changes:
+                #     continue ?
+                paths = [os.path.join(directory, filename)
+                         for directory, filename in changes]
+                main_process_changes = main_process_paths.intersection(paths)
+                if main_process_changes:
+                    example_path = main_process_changes.pop()
+                    print()
+                    print('Detected edit to {}'.format(example_path))
+                    for w in workers:
+                        w.close()
+                    raise Restart()
+
             # import_order = improve_order(import_order, dangers)
             # print('Importing {}'.format(module_names))
             t0 = time()
@@ -107,14 +124,6 @@ def main_loop(arguments, is_interactive):
             paths = [os.path.join(directory, filename)
                      for directory, filename in changes]
 
-            main_process_changes = main_process_paths.intersection(paths)
-            if main_process_changes:
-                example_path = main_process_changes.pop()
-                print()
-                print('Detected edit to {}'.format(example_path))
-                for w in workers:
-                    w.close()
-                raise Restart()
             print()
             print('Running tests')
     finally:

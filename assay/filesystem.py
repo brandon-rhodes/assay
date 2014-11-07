@@ -60,6 +60,9 @@ class Filesystem(object):
         self.isdir = self._isdir_cache.__getitem__
         self.paths = set()
 
+    def fileno(self):
+        return self.fd
+
     def search_directory(self, path):
         pass
 
@@ -80,19 +83,18 @@ class Filesystem(object):
             self.paths.add(path)
             self.descriptors[d] = path
 
-    def wait(self):
+    def read(self):
         changes = []
-        while not changes:
-            data = read(self.fd, 8192)
-            while data:
-                d, mask, cookie, name_length = unpack(FORMAT, data[:SIZE])
-                directory = self.descriptors[d]
-                j = SIZE + name_length
-                name = data[SIZE:j].rstrip('\0')
-                data = data[j:]
-                if not is_interesting(name):
-                    continue
-                changes.append((directory, name))
+        data = read(self.fd, 1048576)
+        while data:
+            d, mask, cookie, name_length = unpack(FORMAT, data[:SIZE])
+            directory = self.descriptors[d]
+            j = SIZE + name_length
+            name = data[SIZE:j].rstrip('\0')
+            data = data[j:]
+            if not is_interesting(name):
+                continue
+            changes.append((directory, name))
         return changes
 
 def module_name_of(filename):
