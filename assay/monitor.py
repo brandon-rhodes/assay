@@ -106,6 +106,8 @@ def main_loop(arguments, is_interactive):
             print()
             print('Detected edit to {}'.format(example_path))
             print(' Restart '.center(79, '='))
+            for w in workers:
+                w.close()
             raise Restart()
         print()
         print('Running tests')
