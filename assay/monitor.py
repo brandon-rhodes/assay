@@ -60,9 +60,8 @@ def main_loop(arguments, is_interactive):
                 for fd, flags in poller.poll():
                     w = worker_fds.get(fd)
                     if w is None:
-                        keystroke = sys.stdin.read(1)
-                        # if keystroke == 'r':
-                        #     raise Restart()
+                        for keystroke in sys.stdin.read():
+                            print('got {}'.format(keystroke))
                         continue
                     result = w.next()
                     if result is StopIteration:
