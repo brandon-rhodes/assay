@@ -13,10 +13,8 @@ from .importation import import_module, improve_order, list_module_paths
 from .runner import capture_stdout_stderr, run_tests_of
 from .worker import Worker
 
-def f():
-    pass
-
-python3 = (sys.version_info.major >= 3)
+class Restart(BaseException):
+    """Special signal to ``main()`` that we need to restart."""
 
 def main_loop(arguments, is_interactive):
     worker = Worker()
@@ -50,6 +48,8 @@ def main_loop(arguments, is_interactive):
             worker_fds = {w.fileno(): w for w in workers}
 
             poller = select.epoll()
+            if is_interactive:
+                poller.register(sys.stdin, select.EPOLLIN)
             for w in workers:
                 if names:
                     name = names.pop()
@@ -58,7 +58,12 @@ def main_loop(arguments, is_interactive):
                     poller.register(w, select.EPOLLIN)
             while worker_fds:
                 for fd, flags in poller.poll():
-                    w = worker_fds[fd]
+                    w = worker_fds.get(fd)
+                    if w is None:
+                        keystroke = sys.stdin.read(1)
+                        # if keystroke == 'r':
+                        #     raise Restart()
+                        continue
                     result = w.next()
                     if result is StopIteration:
                         if names:
@@ -102,15 +107,9 @@ def main_loop(arguments, is_interactive):
             print()
             print('Detected edit to {}'.format(example_path))
             print(' Restart '.center(79, '='))
-            for w in workers:
-                w.close()
-            restart()
+            raise Restart()
         print()
         print('Running tests')
-
-def restart():
-    executable = sys.executable
-    os.execvp(executable, [executable, '-m', 'assay'] + sys.argv[1:])
 
 def speculatively_import_then_loop(import_order, ):
     pass
