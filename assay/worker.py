@@ -5,17 +5,15 @@ import signal
 import sys
 from types import GeneratorType
 
-python3 = (sys.version_info.major >= 3)
+_python3 = (sys.version_info.major >= 3)
 
-if python3:
+if _python3:
     import pickle
 else:
     import cPickle as pickle
 
-class TransformIntoWorker(BaseException):
-    """Tell main() to pop everything off of the stack and become a worker."""
-
 class Worker(object):
+    """An object in the main process for communicating with one worker."""
 
     def __init__(self):
         from_parent, to_child = os.pipe()
@@ -25,9 +23,8 @@ class Worker(object):
         if not child_pid:
             os.close(to_child)
             os.close(from_child)
-            to_parent = os.fdopen(to_parent, 'wb')
-            from_parent = os.fdopen(from_parent, 'rb')
-            raise TransformIntoWorker(to_parent, from_parent)
+            os.execvp(sys.executable, [sys.executable, '-m', 'assay.worker',
+                                       str(to_parent), str(from_parent)])
 
         self.pids = [child_pid]
         os.close(to_parent)
@@ -78,16 +75,15 @@ def push():
     os.waitpid(child_pid, 0)
     return 'worker process popped'
 
-def worker_task(pipes):
+def worker_process(to_parent, from_parent):
     """Run functions piped to us from the parent process.
 
-    The main process produces a worker process by calling fork() and
-    having the child process raise TransformIntoWorker, which pops the
-    stack all the way out to assay.main.command() whose "try...except"
-    clause catches the exception and calls this function instead.
+    Both `to_parent` and `from_parent` should be integer file
+    descriptors of the pipes connecting us to the parent process.
 
     """
-    to_parent, from_parent = pipes
+    to_parent = os.fdopen(to_parent, 'wb')
+    from_parent = os.fdopen(from_parent, 'rb')
 
     while True:
         function, args, kw = pickle.load(from_parent)
@@ -101,3 +97,6 @@ def worker_task(pipes):
         else:
             pickle.dump(result, to_parent, 2)
             to_parent.flush()
+
+if __name__ == '__main__':
+    worker_process(int(sys.argv[1]), int(sys.argv[2]))
