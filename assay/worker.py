@@ -1,7 +1,6 @@
 """A worker process that can respond to commands."""
 
 import os
-import signal
 import sys
 import unix
 from types import GeneratorType
@@ -60,13 +59,13 @@ class Worker(object):
 
     def __exit__(self, a,b,c):
         """When the 'with' statement ends, have the clone exit."""
-        os.kill(self.pids.pop(), signal.SIGKILL)
+        unix.kill_dash_9(self.pids.pop())
         assert self.next() == 'worker process popped'
 
     def close(self):
         """Kill the worker and close our file descriptors."""
         while self.pids:
-            os.kill(self.pids.pop(), signal.SIGKILL)
+            unix.kill_dash_9(self.pids.pop())
         self.to_child.close()
         self.from_child.close()
 

@@ -2,6 +2,7 @@
 
 import fcntl
 import os
+import signal
 import sys
 import termios
 import tty
@@ -36,3 +37,7 @@ def configure_tty():
 def close_on_exec(fd):
     """Set the close-on-exec flag of the file descriptor `fd`."""
     fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+
+def kill_dash_9(pid):
+    """Kill a process with a signal that cannot be caught or ignored."""
+    os.kill(pid, signal.SIGKILL)

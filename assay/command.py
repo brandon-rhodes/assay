@@ -1,5 +1,7 @@
 """Support direct invocation from the command line."""
 
+from __future__ import print_function
+
 import argparse
 import os
 import sys
@@ -17,5 +19,7 @@ def main():
         with unix.configure_tty() as is_interactive:
             monitor.main_loop(args.name, is_interactive)
     except monitor.Restart:
+        print()
+        print(' Restart '.center(79, '='))
         executable = sys.executable
         os.execvp(executable, [executable, '-m', 'assay'] + sys.argv[1:])

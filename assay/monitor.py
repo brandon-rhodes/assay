@@ -14,7 +14,7 @@ from .runner import capture_stdout_stderr, run_tests_of
 from .worker import Worker
 
 class Restart(BaseException):
-    """Special signal to ``main()`` that we need to restart."""
+    """Tell ``main()`` that we need to restart."""
 
 def main_loop(arguments, is_interactive):
     worker = Worker()
@@ -62,6 +62,10 @@ def main_loop(arguments, is_interactive):
                     if w is None:
                         for keystroke in sys.stdin.read():
                             print('got {}'.format(keystroke))
+                            if keystroke == 'q':
+                                sys.exit(1)
+                            elif keystroke == 'r':
+                                raise Restart()
                         continue
                     result = w.next()
                     if result is StopIteration:
@@ -105,7 +109,6 @@ def main_loop(arguments, is_interactive):
             example_path = main_process_changes.pop()
             print()
             print('Detected edit to {}'.format(example_path))
-            print(' Restart '.center(79, '='))
             for w in workers:
                 w.close()
             raise Restart()
