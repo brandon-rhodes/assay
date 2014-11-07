@@ -57,6 +57,8 @@ def main_loop(arguments, is_interactive):
                     print('Assay has been modified: {}'.format(example_path))
                     raise Restart()
 
+            continue
+
             # import_order = improve_order(import_order, dangers)
             # print('Importing {}'.format(module_names))
             t0 = time()
