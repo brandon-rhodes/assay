@@ -3,6 +3,7 @@
 import os
 import signal
 import sys
+import unix
 from types import GeneratorType
 
 _python3 = (sys.version_info.major >= 3)
@@ -18,17 +19,19 @@ class Worker(object):
     def __init__(self):
         from_parent, to_child = os.pipe()
         from_child, to_parent = os.pipe()
-        child_pid = os.fork()
 
+        unix.close_on_exec(to_child)
+        unix.close_on_exec(from_child)
+
+        child_pid = os.fork()
         if not child_pid:
-            os.close(to_child)
-            os.close(from_child)
             os.execvp(sys.executable, [sys.executable, '-m', 'assay.worker',
                                        str(to_parent), str(from_parent)])
 
-        self.pids = [child_pid]
         os.close(to_parent)
         os.close(from_parent)
+
+        self.pids = [child_pid]
         self.to_child = os.fdopen(to_child, 'wb')
         self.from_child = os.fdopen(from_child, 'rb', 0)
 

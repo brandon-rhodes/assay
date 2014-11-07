@@ -32,3 +32,7 @@ def configure_tty():
         if is_interactive:
             fcntl.fcntl(fd, fcntl.F_SETFL, original_fl)
             termios.tcsetattr(fd, termios.TCSAFLUSH, original_mode)
+
+def close_on_exec(fd):
+    """Set the close-on-exec flag of the file descriptor `fd`."""
+    fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
