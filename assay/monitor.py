@@ -48,17 +48,13 @@ def main_loop(arguments, is_interactive):
 
             elif source is file_watcher:
                 changes = file_watcher.read()
-                # if not changes:
-                #     continue ?
                 paths = [os.path.join(directory, filename)
                          for directory, filename in changes]
                 main_process_changes = main_process_paths.intersection(paths)
                 if main_process_changes:
                     example_path = main_process_changes.pop()
                     print()
-                    print('Detected edit to {}'.format(example_path))
-                    for w in workers:
-                        w.close()
+                    print('Assay has been modified: {}'.format(example_path))
                     raise Restart()
 
             # import_order = improve_order(import_order, dangers)
@@ -129,6 +125,10 @@ def main_loop(arguments, is_interactive):
     finally:
         for w in workers:
             w.close()
+
+def run_tests():
+    pass
+
 
 def speculatively_import_then_loop(import_order, ):
     pass
