@@ -50,8 +50,10 @@ def main_loop(arguments, is_interactive):
                 try:
                     runner.send(source)
                 except StopIteration:
-                    print('\n\n')
+                    if not is_interactive:
+                        break
                     file_watcher.add_paths(paths_under_test)
+                    write('Watching {} paths...'.format(len(paths_under_test)))
 
             elif source is sys.stdin:
                 for keystroke in sys.stdin.read():
@@ -80,16 +82,12 @@ def main_loop(arguments, is_interactive):
 
             # import_order = improve_order(import_order, dangers)
             # module_paths, events = worker(import_modules, import_order)
-            # print('Importing {}'.format(module_names))
-            t0 = time()
             with contextlib.nested(*workers):
                 # t0 = time()
                 # module_paths, events = worker(import_modules, import_order)
                 # pprint(events)
                 # print('  {} seconds'.format(time() - t0))
                 # print()
-
-                successes = failures = 0
 
                 for w in workers:
                     if names:
@@ -114,21 +112,11 @@ def main_loop(arguments, is_interactive):
                             flush()
                             successes += 1
                         else:
-                            pretty_print_exception(*result)
                             flush()
                             failures += 1
                 paths = [path for name_, path in worker.call(list_module_paths)]
             print()
-            dt = time() - t0
-            if failures:
-                tally = red('{} of {} tests failed'.format(
-                    failures, successes + failures))
-            else:
-                tally = green('All {} tests passed'.format(successes))
-            print('{} in {:.2f} seconds'.format(tally, dt))
 
-            if not sys.stdout.isatty():
-                break
 
             print('Watching', len(paths), 'paths', end='...')
             flush()
@@ -147,6 +135,8 @@ def run_all_tests(arguments, workers, paths_under_test):
     worker = workers[0]
     running_workers = set()
     names = []
+    t0 = time()
+    successes = failures = 0
 
     for argument in arguments:
         import_path, import_name = interpret_argument(worker, argument)
@@ -176,16 +166,24 @@ def run_all_tests(arguments, workers, paths_under_test):
             if result is StopIteration:
                 give_work_to(worker)
                 continue
-            if isinstance(result, str):
-                write(result)
+            if result == '.':
+                write('.')
+                successes += 1
             else:
-                write(repr(result))
+                pretty_print_exception(*result)
+                failures += 1
 
     finally:
         for worker in workers:
             worker.pop()
 
-    write('\n\n')
+    dt = time() - t0
+    if failures:
+        tally = red('{} of {} tests failed'.format(
+            failures, successes + failures))
+    else:
+        tally = green('All {} tests passed'.format(successes))
+    write('\n{} in {:.2f} seconds\n'.format(tally, dt))
 
 def install_import_path(path):
     sys.modules.insert(0, path)
