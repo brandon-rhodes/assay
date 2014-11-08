@@ -1,5 +1,5 @@
 from time import time
-from assay.worker import Worker, TransformIntoWorker, worker_task
+from assay.worker import Worker
 
 def dot():
     return '.'
@@ -19,24 +19,14 @@ def main():
 
     t0 = time()
     for item in items:
-        assert worker.call(dot) == '.'
-    dt = time() - t0
-
-    print('{:,.6f} s = {:,.1f} /s: Using a worker to call a function'
-          .format(dt / n, n / dt))
-
-    t0 = time()
-    for item in items:
         with worker:
-            assert worker.call(dot) == '.'
+            assert worker.call(int) == 0
     dt = time() - t0
 
     print('{:,.6f} s = {:,.1f} /s: Pushing, calling, then popping a new worker'
           .format(dt / n, n / dt))
 
+    worker.close()
+
 if __name__ == '__main__':
-    try:
-        main()
-    except TransformIntoWorker as e:
-        pipes = e.args
-        worker_task(pipes)
+    main()
