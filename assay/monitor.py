@@ -30,20 +30,22 @@ def main_loop(arguments, is_interactive):
     file_watcher = Filesystem()
     file_watcher.add_paths(main_process_paths)
 
-    workers = [Worker(), Worker()]
-
     poller = unix.EPoll()
     poller.register(file_watcher)
-    for worker in workers:
-        poller.register(worker)
     if is_interactive:
         poller.register(sys.stdin)
 
-    paths_under_test = set()
-    runner = run_all_tests(arguments, workers, paths_under_test)
-    runner.next()
-
+    workers = []
     try:
+        workers.append(Worker())
+        workers.append(Worker())
+        for worker in workers:
+            poller.register(worker)
+
+        paths_under_test = set()
+        runner = run_all_tests(arguments, workers, paths_under_test)
+        runner.next()
+
         for source, flags in poller.events():
 
             if isinstance(source, Worker):
