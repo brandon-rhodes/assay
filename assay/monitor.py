@@ -30,20 +30,28 @@ def main_loop(arguments, is_interactive):
     file_watcher = Filesystem()
     file_watcher.add_paths(main_process_paths)
 
+    workers = [Worker(), Worker()]
+
     poller = unix.EPoll()
     poller.register(file_watcher)
+    for worker in workers:
+        poller.register(worker)
     if is_interactive:
         poller.register(sys.stdin)
 
-    runner = Runner(arguments, poller)
-    runner.start()
-    #worker = Worker()
+    paths_under_test = set()
+    runner = run_all_tests(arguments, workers, paths_under_test)
+    runner.next()
 
     try:
         for source, flags in poller.events():
 
             if isinstance(source, Worker):
-                runner.read(source)
+                try:
+                    runner.send(source)
+                except StopIteration:
+                    print('\n\n')
+                    file_watcher.add_paths(paths_under_test)
 
             elif source is sys.stdin:
                 for keystroke in sys.stdin.read():
@@ -62,6 +70,11 @@ def main_loop(arguments, is_interactive):
                     example_path = main_process_changes.pop()
                     write('\nAssay has been modified: {}'.format(example_path))
                     raise Restart()
+                runner.close()
+
+                paths_under_test = set()
+                runner = run_all_tests(arguments, workers, paths_under_test)
+                runner.next()
 
             continue
 
@@ -127,49 +140,52 @@ def main_loop(arguments, is_interactive):
             print()
             print('Running tests')
     finally:
-        # worker.close()
-        runner.close()
+        for worker in workers:
+            worker.close()
 
-class Runner(object):
-    """Govern the progress and reporting of multiple test runs."""
+def run_all_tests(arguments, workers, paths_under_test):
+    worker = workers[0]
+    running_workers = set()
+    names = []
 
-    def __init__(self, arguments, poller):
-        self.arguments = arguments
-        self.poller = poller
-        self.workers = [Worker(), Worker()]
-        for worker in self.workers:
-            self.poller.register(worker)
+    for argument in arguments:
+        import_path, import_name = interpret_argument(worker, argument)
+        more_names = search_argument(import_path, import_name)
+        names.extend(more_names)
 
-    def start(self):
-        """Start a new test run."""
-        worker = self.workers[0]
-        self.names = names = []
-        for argument in self.arguments:
-            import_path, import_name = interpret_argument(worker, argument)
-            more_names = search_argument(import_path, import_name)
-            names.extend(more_names)
-        for worker in self.workers:
-            if names:
-                name = names.pop()
-                worker.start(capture_stdout_stderr, run_tests_of, name)
-
-    def read(self, worker):
-        """Read a new test result from our `worker`."""
-        result = worker.next()
-        if result is StopIteration:
-            if self.names:
-                name = self.names.pop()
-                worker.start(capture_stdout_stderr, run_tests_of, name)
+    def give_work_to(worker):
+        if names:
+            name = names.pop()
+            worker.start(capture_stdout_stderr, run_tests_of, name)
+            running_workers.add(worker)
         else:
+            running_workers.remove(worker)
+            paths = [path for name, path in worker.call(list_module_paths)]
+            paths_under_test.update(paths)
+
+    for worker in workers:
+        worker.push()
+
+    try:
+        for worker in workers:
+            give_work_to(worker)
+
+        while running_workers:
+            worker = yield
+            result = worker.next()
+            if result is StopIteration:
+                give_work_to(worker)
+                continue
             if isinstance(result, str):
                 write(result)
             else:
                 write(repr(result))
 
-    def close(self):
-        """Close all pipes and worker processes."""
-        for worker in self.workers:
-            worker.close()
+    finally:
+        for worker in workers:
+            worker.pop()
+
+    write('\n\n')
 
 def install_import_path(path):
     sys.modules.insert(0, path)

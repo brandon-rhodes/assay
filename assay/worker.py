@@ -34,6 +34,15 @@ class Worker(object):
         self.to_child = os.fdopen(to_child, 'wb')
         self.from_child = os.fdopen(from_child, 'rb', 0)
 
+    def push(self):
+        """Have the worker push a new subprocess on top of the stack."""
+        self.pids.append(self.call(push))
+
+    def pop(self):
+        """Kill the top subprocess and pop it from the stack."""
+        unix.kill_dash_9(self.pids.pop())
+        assert self.next() == 'worker process popped'
+
     def call(self, function, *args, **kw):
         """Run a function in the worker process and return its result."""
         pickle.dump((function, args, kw), self.to_child)
