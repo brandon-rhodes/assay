@@ -78,55 +78,8 @@ def main_loop(arguments, is_interactive):
                 runner = run_all_tests(arguments, workers, paths_under_test)
                 runner.next()
 
-            continue
-
             # import_order = improve_order(import_order, dangers)
             # module_paths, events = worker(import_modules, import_order)
-            with contextlib.nested(*workers):
-                # t0 = time()
-                # module_paths, events = worker(import_modules, import_order)
-                # pprint(events)
-                # print('  {} seconds'.format(time() - t0))
-                # print()
-
-                for w in workers:
-                    if names:
-                        name = names.pop()
-                        w.start(capture_stdout_stderr, run_tests_of, name)
-                        # w.start(run_tests_of, name)
-                        poller.register(w, select.EPOLLIN)
-                while worker_fds:
-                    for fd, flags in poller.poll():
-                        w = worker_fds.get(fd)
-                        result = w.next()
-                        if result is StopIteration:
-                            if names:
-                                name = names.pop()
-                                w.start(capture_stdout_stderr, run_tests_of, name)
-                                # w.start(run_tests_of, name)
-                            else:
-                                poller.unregister(w)
-                                del worker_fds[fd]
-                        elif isinstance(result, str):
-                            write('.')
-                            flush()
-                            successes += 1
-                        else:
-                            flush()
-                            failures += 1
-                paths = [path for name_, path in worker.call(list_module_paths)]
-            print()
-
-
-            print('Watching', len(paths), 'paths', end='...')
-            flush()
-            file_watcher.add_paths(paths)
-            changes = file_watcher.wait()
-            paths = [os.path.join(directory, filename)
-                     for directory, filename in changes]
-
-            print()
-            print('Running tests')
     finally:
         for worker in workers:
             worker.close()
