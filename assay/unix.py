@@ -39,6 +39,11 @@ def close_on_exec(fd):
     """Set the close-on-exec flag of the file descriptor `fd`."""
     fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
 
+def cpu_count():
+    """Return the number of CPUs on the system."""
+    with open('/proc/cpuinfo') as f:
+        return f.read().count('\nbogomips')
+
 def kill_dash_9(pid):
     """Kill a process with a signal that cannot be caught or ignored."""
     os.kill(pid, signal.SIGKILL)

@@ -37,9 +37,9 @@ def main_loop(arguments, is_interactive):
 
     workers = []
     try:
-        workers.append(Worker())
-        workers.append(Worker())
-        for worker in workers:
+        for i in range(unix.cpu_count()):
+            worker = Worker()
+            workers.append(worker)
             poller.register(worker)
 
         paths_under_test = set()
@@ -120,8 +120,7 @@ def run_all_tests(arguments, workers, paths_under_test):
             result = worker.next()
             if result is StopIteration:
                 give_work_to(worker)
-                continue
-            if result == '.':
+            elif result == '.':
                 write('.')
                 successes += 1
             else:
