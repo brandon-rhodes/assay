@@ -29,7 +29,7 @@ def import_modules(module_names):
         try:
             import_module(module_name)
         except ImportError:
-            continue  # for modules like "pytz.threading"
+            continue
         new = set(name for name, m in sys.modules.items() if m is not None)
         import_events.append((module_name, new - old))
         old = new
