@@ -16,12 +16,13 @@ from .worker import Worker
 class Restart(BaseException):
     """Tell ``main()`` that we need to restart."""
 
+def write(string):
+    """Send `string` immediately to standard output, without buffering."""
+    os.write(1, string)
+
 def main_loop(arguments, is_interactive):
     worker = Worker()
     workers = [worker, Worker()]
-
-    write = sys.stdout.write
-    flush = sys.stdout.flush
 
     items = [interpret_argument(worker, argument) for argument in arguments]
 
@@ -38,7 +39,11 @@ def main_loop(arguments, is_interactive):
     try:
         for source, flags in poller.events():
 
-            if source is sys.stdin:
+            if isinstance(source, Worker):
+                result = source.next()
+                write(str(result))
+
+            elif source is sys.stdin:
                 for keystroke in sys.stdin.read():
                     print('got {}'.format(keystroke))
                     if keystroke == 'q':
@@ -53,8 +58,7 @@ def main_loop(arguments, is_interactive):
                 main_process_changes = main_process_paths.intersection(paths)
                 if main_process_changes:
                     example_path = main_process_changes.pop()
-                    print()
-                    print('Assay has been modified: {}'.format(example_path))
+                    write('\nAssay has been modified: {}'.format(example_path))
                     raise Restart()
 
             continue
