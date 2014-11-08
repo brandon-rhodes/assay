@@ -16,15 +16,14 @@ from .worker import Worker
 class Restart(BaseException):
     """Tell ``main()`` that we need to restart."""
 
+stdout_fd = sys.stdin.fileno()
+
 def write(string):
     """Send `string` immediately to standard output, without buffering."""
-    os.write(1, string)
+    os.write(stdout_fd, string)
 
 def main_loop(arguments, is_interactive):
-    worker = Worker()
-    workers = [worker, Worker()]
-
-    items = [interpret_argument(worker, argument) for argument in arguments]
+    """Run and report on tests while also letting the user type commands."""
 
     main_process_paths = set(path for name, path in list_module_paths())
 
@@ -36,12 +35,15 @@ def main_loop(arguments, is_interactive):
     if is_interactive:
         poller.register(sys.stdin)
 
+    runner = Runner(arguments, poller)
+    runner.start()
+    #worker = Worker()
+
     try:
         for source, flags in poller.events():
 
             if isinstance(source, Worker):
-                result = source.next()
-                write(str(result))
+                runner.read(source)
 
             elif source is sys.stdin:
                 for keystroke in sys.stdin.read():
@@ -64,14 +66,10 @@ def main_loop(arguments, is_interactive):
             continue
 
             # import_order = improve_order(import_order, dangers)
+            # module_paths, events = worker(import_modules, import_order)
             # print('Importing {}'.format(module_names))
             t0 = time()
             with contextlib.nested(*workers):
-                names = []
-                for item in items:
-                    import_path, import_name = item
-                    more_names = search_argument(import_path, import_name)
-                    names.extend(more_names)
                 # t0 = time()
                 # module_paths, events = worker(import_modules, import_order)
                 # pprint(events)
@@ -129,18 +127,49 @@ def main_loop(arguments, is_interactive):
             print()
             print('Running tests')
     finally:
-        for w in workers:
-            w.close()
+        # worker.close()
+        runner.close()
 
-def run_tests():
-    pass
+class Runner(object):
+    """Govern the progress and reporting of multiple test runs."""
 
+    def __init__(self, arguments, poller):
+        self.arguments = arguments
+        self.poller = poller
+        self.workers = [Worker(), Worker()]
+        for worker in self.workers:
+            self.poller.register(worker)
 
-def speculatively_import_then_loop(import_order, ):
-    pass
+    def start(self):
+        """Start a new test run."""
+        worker = self.workers[0]
+        self.names = names = []
+        for argument in self.arguments:
+            import_path, import_name = interpret_argument(worker, argument)
+            more_names = search_argument(import_path, import_name)
+            names.extend(more_names)
+        for worker in self.workers:
+            if names:
+                name = names.pop()
+                worker.start(capture_stdout_stderr, run_tests_of, name)
 
-def list_modules():
-    return list(sys.modules)
+    def read(self, worker):
+        """Read a new test result from our `worker`."""
+        result = worker.next()
+        if result is StopIteration:
+            if self.names:
+                name = self.names.pop()
+                worker.start(capture_stdout_stderr, run_tests_of, name)
+        else:
+            if isinstance(result, str):
+                write(result)
+            else:
+                write(repr(result))
+
+    def close(self):
+        """Close all pipes and worker processes."""
+        for worker in self.workers:
+            worker.close()
 
 def install_import_path(path):
     sys.modules.insert(0, path)
