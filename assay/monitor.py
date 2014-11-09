@@ -17,6 +17,7 @@ class Restart(BaseException):
     """Tell ``main()`` that we need to restart."""
 
 stdout_fd = sys.stdin.fileno()
+ctrl_d = '\x04'
 
 def write(string):
     """Send `string` immediately to standard output, without buffering."""
@@ -60,7 +61,7 @@ def main_loop(arguments, is_interactive):
             elif source is sys.stdin:
                 for keystroke in sys.stdin.read():
                     print('got {}'.format(keystroke))
-                    if keystroke == 'q':
+                    if keystroke in 'q' + ctrl_d:
                         sys.exit()
                     elif keystroke == 'r':
                         raise Restart()
