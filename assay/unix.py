@@ -41,8 +41,10 @@ def close_on_exec(fd):
 
 def cpu_count():
     """Return the number of CPUs on the system."""
-    with open('/proc/cpuinfo') as f:
-        return f.read().count('\nbogomips')
+    if os.path.exists('/proc/cpuinfo'):
+        with open('/proc/cpuinfo') as f:
+            return f.read().count('\nbogomips')
+    return 2
 
 def kill_dash_9(pid):
     """Kill a process with a signal that cannot be caught or ignored."""
