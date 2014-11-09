@@ -2,7 +2,6 @@
 
 from __future__ import print_function
 
-import contextlib
 import os
 import sys
 from time import time
@@ -36,6 +35,7 @@ def main_loop(arguments, is_interactive):
     if is_interactive:
         poller.register(sys.stdin)
 
+    runner = None  # so our 'finally' clause does not explode
     workers = []
     try:
         for i in range(unix.cpu_count()):
@@ -84,6 +84,8 @@ def main_loop(arguments, is_interactive):
             # import_order = improve_order(import_order, dangers)
             # module_paths, events = worker(import_modules, import_order)
     finally:
+        if runner is not None:
+            runner.close()
         for worker in workers:
             worker.close()
 
