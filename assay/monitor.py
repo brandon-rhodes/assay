@@ -61,7 +61,7 @@ def main_loop(arguments, is_interactive):
             elif source is sys.stdin:
                 for keystroke in sys.stdin.read():
                     print('got {}'.format(keystroke))
-                    if keystroke in 'q' + ctrl_d:
+                    if keystroke == 'q' or keystroke == ctrl_d:
                         sys.exit()
                     elif keystroke == 'r':
                         raise Restart()
