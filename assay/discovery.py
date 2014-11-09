@@ -7,7 +7,7 @@ from importlib import import_module
 from keyword import iskeyword
 from .importation import get_directory_of, import_modules, list_module_paths
 
-matches_dot_py = re.compile(r'[A-Za-z_][A-Za-z_0-9]*\.py').match
+matches_dot_py = re.compile(r'[A-Za-z_][A-Za-z_0-9]*\.py$').match
 
 def paths_and_modules(worker, names):
     """Return paths and modules for each name on the command line.
