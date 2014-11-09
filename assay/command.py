@@ -23,3 +23,5 @@ def main():
         print(' Restart '.center(79, '='))
         executable = sys.executable
         os.execvp(executable, [executable, '-m', 'assay'] + sys.argv[1:])
+    except KeyboardInterrupt:
+        sys.stdout.write('\n')

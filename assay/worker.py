@@ -110,4 +110,7 @@ def worker_process(to_parent, from_parent):
             to_parent.flush()
 
 if __name__ == '__main__':
-    worker_process(int(sys.argv[1]), int(sys.argv[2]))
+    try:
+        worker_process(int(sys.argv[1]), int(sys.argv[2]))
+    except KeyboardInterrupt:
+        pass
