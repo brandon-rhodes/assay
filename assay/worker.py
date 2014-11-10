@@ -24,6 +24,7 @@ class Worker(object):
 
         child_pid = os.fork()
         if not child_pid:
+            os.setpgrp()  # prevent worker from receiving Ctrl-C
             os.execvp(sys.executable, [sys.executable, '-m', 'assay.worker',
                                        str(to_parent), str(from_parent)])
 
@@ -64,12 +65,11 @@ class Worker(object):
 
     def __enter__(self):
         """During a 'with' statement, run commands in a clone of the worker."""
-        self.pids.append(self.call(push))
+        self.push()
 
     def __exit__(self, a,b,c):
         """When the 'with' statement ends, have the clone exit."""
-        unix.kill_dash_9(self.pids.pop())
-        assert self.next() == 'worker process popped'
+        self.pop()
 
     def close(self):
         """Kill the worker and close our file descriptors."""
