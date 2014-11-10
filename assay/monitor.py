@@ -15,7 +15,7 @@ from .worker import Worker
 class Restart(BaseException):
     """Tell ``main()`` that we need to restart."""
 
-stdout_fd = sys.stdin.fileno()
+stdout_fd = sys.stdout.fileno()
 ctrl_d = '\x04'
 
 def write(string):
