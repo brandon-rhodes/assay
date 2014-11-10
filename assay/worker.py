@@ -41,12 +41,17 @@ class Worker(object):
 
     def push(self):
         """Have the worker push a new subprocess on top of the stack."""
-        self.pids.append(self.call(push))
+        self.pids.append(self.call(os.fork))
 
     def pop(self):
         """Kill the top subprocess and pop it from the stack."""
         unix.kill_dash_9(self.pids.pop())
-        assert self.next() == 'worker process popped'
+        assert self._recv() == 'popped'
+        # sock = self.sock
+        # sock.setblocking(False)
+        # while sock.recv():
+        #     pass
+        # sock.setblocking(True)
 
     def call(self, function, *args, **kw):
         """Run a function in the worker process and return its result."""
@@ -79,14 +84,6 @@ class Worker(object):
             unix.kill_dash_9(self.pids.pop())
         self.sock.close()
 
-def push():
-    """Fork a child worker, who will own the pipe until it exits."""
-    child_pid = os.fork()
-    if not child_pid:
-        return os.getpid()
-    os.waitpid(child_pid, 0)
-    return 'worker process popped'
-
 def worker_process(sock_fd):
     """Run functions piped to us from the parent process.
 
@@ -99,12 +96,17 @@ def worker_process(sock_fd):
     while True:
         function, args, kw = pickle.loads(sock.recv(_enough))
         result = function(*args, **kw)
-        if isinstance(result, GeneratorType):
+        if function is os.fork:
+            if result:
+                os.waitpid(result, 0)
+                result = 'popped'
+            else:
+                result = os.getpid()
+        elif isinstance(result, GeneratorType):
             for item in result:
                 sock.send(pickle.dumps(item, 2))
-            sock.send(pickle.dumps(StopIteration, 2))
-        else:
-            sock.send(pickle.dumps(result, 2))
+            result = StopIteration
+        sock.send(pickle.dumps(result, 2))
 
 if __name__ == '__main__':
     try:
