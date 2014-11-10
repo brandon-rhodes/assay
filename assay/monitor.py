@@ -15,8 +15,13 @@ from .worker import Worker
 class Restart(BaseException):
     """Tell ``main()`` that we need to restart."""
 
+stdin_fd = sys.stdin.fileno()
 stdout_fd = sys.stdout.fileno()
 ctrl_d = '\x04'
+
+def read_keystrokes():
+    """Read user keystrokes from standard input."""
+    return os.read(stdin_fd, 1024)
 
 def write(string):
     """Send `string` immediately to standard output, without buffering."""
@@ -59,7 +64,7 @@ def main_loop(arguments, is_interactive):
                     write('Watching {} paths...'.format(len(paths_under_test)))
 
             elif source is sys.stdin:
-                for keystroke in sys.stdin.read():
+                for keystroke in read_keystrokes():
                     print('got {}'.format(keystroke))
                     if keystroke == 'q' or keystroke == ctrl_d:
                         sys.exit()
