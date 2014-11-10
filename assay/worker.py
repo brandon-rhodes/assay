@@ -33,6 +33,12 @@ class Worker(object):
         self.pids = [child_pid]
         self.sock = sock
 
+    def _send(self, obj):
+        self.sock.send(pickle.dumps(obj))
+
+    def _recv(self):
+        return pickle.loads(self.sock.recv(_enough))
+
     def push(self):
         """Have the worker push a new subprocess on top of the stack."""
         self.pids.append(self.call(push))
@@ -44,16 +50,16 @@ class Worker(object):
 
     def call(self, function, *args, **kw):
         """Run a function in the worker process and return its result."""
-        self.sock.send(pickle.dumps((function, args, kw)))
-        return pickle.loads(self.sock.recv(_enough))
+        self._send((function, args, kw))
+        return self._recv()
 
     def start(self, generator, *args, **kw):
         """Start a generator in the worker process."""
-        self.sock.send(pickle.dumps((generator, args, kw)))
+        self._send((generator, args, kw))
 
     def next(self):
         """Return the next item from the generator given to `start()`."""
-        return pickle.loads(self.sock.recv(_enough))
+        return self._recv()
 
     def fileno(self):
         """Return the incoming file descriptor, for `epoll()` objects."""
