@@ -46,7 +46,7 @@ class Worker(object):
     def pop(self):
         """Kill the top subprocess and pop it from the stack."""
         unix.kill_dash_9(self.pids.pop())
-        assert self._recv() == 'popped'
+        assert self._recv() == self.pids[-1]
         # sock = self.sock
         # sock.setblocking(False)
         # while sock.recv():
@@ -99,9 +99,7 @@ def worker_process(sock_fd):
         if function is os.fork:
             if result:
                 os.waitpid(result, 0)
-                result = 'popped'
-            else:
-                result = os.getpid()
+            result = os.getpid()
         elif isinstance(result, GeneratorType):
             for item in result:
                 sock.send(pickle.dumps(item, 2))
