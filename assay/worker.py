@@ -83,14 +83,6 @@ class Worker(object):
         self.to_worker.close()
         self.from_worker.close()
 
-def push():
-    """Fork a child worker, who will own the pipe until it exits."""
-    child_pid = os.fork()
-    if not child_pid:
-        return os.getpid()
-    os.waitpid(child_pid, 0)
-    return 'worker process popped'
-
 def worker_process(to_parent, from_parent):
     """Run functions piped to us from the parent process.
 
