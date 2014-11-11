@@ -9,6 +9,8 @@ import termios
 import tty
 from contextlib import contextmanager
 
+_everything = 1024 * 1024
+
 @contextmanager
 def configure_tty():
     """Configure the terminal to give us keystrokes, not whole lines.
@@ -38,6 +40,15 @@ def cpu_count():
         with open('/proc/cpuinfo') as f:
             return f.read().count('\nbogomips')
     return 2
+
+def discard_input(fd):
+    """Discard all bytes waiting to be read from a given file descriptor."""
+    fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
+    try:
+        os.read(fd, _everything)
+    except OSError:
+        pass
+    fcntl.fcntl(fd, fcntl.F_SETFL, 0)
 
 def kill_dash_9(pid):
     """Kill a process with a signal that cannot be caught or ignored."""

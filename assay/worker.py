@@ -47,12 +47,8 @@ class Worker(object):
     def pop(self):
         """Kill the top subprocess and pop it from the stack."""
         unix.kill_dash_9(self.pids.pop())
-        assert pickle.load(self.from_worker) == self.pids[-1]
-        # sock = self.sock
-        # sock.setblocking(False)
-        # while sock.recv():
-        #     pass
-        # sock.setblocking(True)
+        os.read(self.sync_from_worker, 1)
+        unix.discard_input(self.from_worker.fileno())
 
     def call(self, function, *args, **kw):
         """Run a function in the worker process and return its result."""
@@ -104,6 +100,8 @@ def worker_process(from_parent, to_parent, sync_to_parent):
         if function is os.fork:
             if result:
                 os.waitpid(result, 0)
+                os.write(sync_to_parent, '_')
+                continue
             result = os.getpid()
         elif isinstance(result, GeneratorType):
             for item in result:
