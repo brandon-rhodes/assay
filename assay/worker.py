@@ -18,22 +18,27 @@ class Worker(object):
     def __init__(self):
         from_parent, to_worker = os.pipe()
         from_worker, to_parent = os.pipe()
+        sync_from_worker, sync_to_parent = os.pipe()
 
         unix.close_on_exec(to_worker)
         unix.close_on_exec(from_worker)
+        unix.close_on_exec(sync_from_worker)
 
         worker_pid = os.fork()
         if not worker_pid:
             os.setpgrp()  # prevent worker from receiving Ctrl-C
-            os.execvp(sys.executable, [sys.executable, '-m', 'assay.worker',
-                                       str(to_parent), str(from_parent)])
+            python = sys.executable
+            os.execvp(python, [python, '-m', 'assay.worker', str(from_parent),
+                               str(to_parent), str(sync_to_parent)])
 
-        os.close(to_parent)
         os.close(from_parent)
+        os.close(to_parent)
+        os.close(sync_to_parent)
 
         self.pids = [worker_pid]
         self.to_worker = os.fdopen(to_worker, 'wb')
         self.from_worker = os.fdopen(from_worker, 'rb', 0)
+        self.sync_from_worker = sync_from_worker
 
     def push(self):
         """Have the worker push a new subprocess on top of the stack."""
@@ -83,7 +88,7 @@ class Worker(object):
         self.to_worker.close()
         self.from_worker.close()
 
-def worker_process(to_parent, from_parent):
+def worker_process(from_parent, to_parent, sync_to_parent):
     """Run functions piped to us from the parent process.
 
     Both `to_parent` and `from_parent` should be integer file
@@ -110,6 +115,6 @@ def worker_process(to_parent, from_parent):
 
 if __name__ == '__main__':
     try:
-        worker_process(int(sys.argv[1]), int(sys.argv[2]))
+        worker_process(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
     except KeyboardInterrupt:
         pass
