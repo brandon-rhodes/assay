@@ -6,19 +6,21 @@ def dot():
 
 def main():
     worker = Worker()
+
     n = 2000
-    items = [None] * n
 
     t0 = time()
-    for item in items:
+    for item in range(n):
         assert worker.call(int) == 0
     dt = time() - t0
 
     print('{:,.6f} s = {:,.1f} /s: Using a worker to call a built-in'
           .format(dt / n, n / dt))
 
+    n = 500
+
     t0 = time()
-    for item in items:
+    for item in range(n):
         with worker:
             assert worker.call(int) == 0
     dt = time() - t0
