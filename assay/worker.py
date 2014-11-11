@@ -16,14 +16,14 @@ class Worker(object):
     """An object in the main process for communicating with one worker."""
 
     def __init__(self):
-        from_parent, to_child = os.pipe()
-        from_child, to_parent = os.pipe()
+        from_parent, to_worker = os.pipe()
+        from_worker, to_parent = os.pipe()
 
-        unix.close_on_exec(to_child)
-        unix.close_on_exec(from_child)
+        unix.close_on_exec(to_worker)
+        unix.close_on_exec(from_worker)
 
-        child_pid = os.fork()
-        if not child_pid:
+        worker_pid = os.fork()
+        if not worker_pid:
             os.setpgrp()  # prevent worker from receiving Ctrl-C
             os.execvp(sys.executable, [sys.executable, '-m', 'assay.worker',
                                        str(to_parent), str(from_parent)])
@@ -31,9 +31,9 @@ class Worker(object):
         os.close(to_parent)
         os.close(from_parent)
 
-        self.pids = [child_pid]
-        self.to_child = os.fdopen(to_child, 'wb')
-        self.from_child = os.fdopen(from_child, 'rb', 0)
+        self.pids = [worker_pid]
+        self.to_worker = os.fdopen(to_worker, 'wb')
+        self.from_worker = os.fdopen(from_worker, 'rb', 0)
 
     def push(self):
         """Have the worker push a new subprocess on top of the stack."""
@@ -42,7 +42,7 @@ class Worker(object):
     def pop(self):
         """Kill the top subprocess and pop it from the stack."""
         unix.kill_dash_9(self.pids.pop())
-        assert pickle.load(self.from_child) == self.pids[-1]
+        assert pickle.load(self.from_worker) == self.pids[-1]
         # sock = self.sock
         # sock.setblocking(False)
         # while sock.recv():
@@ -51,22 +51,22 @@ class Worker(object):
 
     def call(self, function, *args, **kw):
         """Run a function in the worker process and return its result."""
-        pickle.dump((function, args, kw), self.to_child)
-        self.to_child.flush()
-        return pickle.load(self.from_child)
+        pickle.dump((function, args, kw), self.to_worker)
+        self.to_worker.flush()
+        return pickle.load(self.from_worker)
 
     def start(self, generator, *args, **kw):
         """Start a generator in the worker process."""
-        pickle.dump((generator, args, kw), self.to_child)
-        self.to_child.flush()
+        pickle.dump((generator, args, kw), self.to_worker)
+        self.to_worker.flush()
 
     def next(self):
         """Return the next item from the generator given to `start()`."""
-        return pickle.load(self.from_child)
+        return pickle.load(self.from_worker)
 
     def fileno(self):
         """Return the incoming file descriptor, for `epoll()` objects."""
-        return self.from_child.fileno()
+        return self.from_worker.fileno()
 
     def __enter__(self):
         """During a 'with' statement, run commands in a clone of the worker."""
@@ -80,8 +80,8 @@ class Worker(object):
         """Kill the worker and close our file descriptors."""
         while self.pids:
             unix.kill_dash_9(self.pids.pop())
-        self.to_child.close()
-        self.from_child.close()
+        self.to_worker.close()
+        self.from_worker.close()
 
 def push():
     """Fork a child worker, who will own the pipe until it exits."""
@@ -108,17 +108,13 @@ def worker_process(to_parent, from_parent):
             if result:
                 os.waitpid(result, 0)
             result = os.getpid()
-            pickle.dump(result, to_parent, 2)
-            to_parent.flush()
         elif isinstance(result, GeneratorType):
             for item in result:
                 pickle.dump(item, to_parent, 2)
                 to_parent.flush()
-            pickle.dump(StopIteration, to_parent, 2)
-            to_parent.flush()
-        else:
-            pickle.dump(result, to_parent, 2)
-            to_parent.flush()
+            result = StopIteration
+        pickle.dump(result, to_parent, 2)
+        to_parent.flush()
 
 if __name__ == '__main__':
     try:
