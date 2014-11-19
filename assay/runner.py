@@ -42,7 +42,15 @@ def capture_stdout_stderr(generator, *args):
 
 def run_tests_of(module_name):
     """Run all tests discovered inside of a module."""
-    module = import_module(module_name)
+    try:
+        module = import_module(module_name)
+    except SyntaxError as e:
+        # TODO: make this message format less crazily
+        # probably by writing our own format_exception_only()
+        message = ''.join(traceback.format_exception_only(e.__class__, e))
+        yield 'F', e.__class__.__name__, message, []
+        return
+
     tests = sorted((k, v) for k, v in module.__dict__.items()
                    if k.startswith('test_')
                    and getattr(v, '__module__', '') == module_name)
