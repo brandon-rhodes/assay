@@ -88,9 +88,9 @@ class Filesystem(object):
         data = read(self.fd, 1048576)
         while data:
             d, mask, cookie, name_length = unpack(FORMAT, data[:SIZE])
-            directory = self.descriptors[d]
+            directory = self.descriptors[d].encode('ascii')  # TODO: ascii :(
             j = SIZE + name_length
-            name = data[SIZE:j].rstrip('\0')
+            name = data[SIZE:j].rstrip(b'\0')
             data = data[j:]
             if not is_interesting(name):
                 continue
@@ -108,7 +108,7 @@ def is_identifier(name):
     return identifier_re_match(name) and not iskeyword(name)
 
 def is_interesting(name):
-    return not (name.startswith('.') or name.endswith('~'))
+    return not (name.startswith(b'.') or name.endswith(b'~'))
 
 class _isdir_dict(dict):
     def __missing__(self, key):

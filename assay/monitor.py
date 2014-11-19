@@ -83,11 +83,12 @@ def main_loop(arguments, is_interactive):
                 runner.close()
                 write(repr(paths))
 
-                write('\n\nFile modified: {}\n\n'.format(paths[0]))
+                if paths:
+                    write('\n\nFile modified: {}\n\n'.format(paths[0]))
 
                 paths_under_test = set()
                 runner = run_all_tests(arguments, workers, paths_under_test)
-                runner.next()
+                next(runner)
 
             # import_order = improve_order(import_order, dangers)
             # module_paths, events = worker(import_modules, import_order)
