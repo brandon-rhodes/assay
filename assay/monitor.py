@@ -25,7 +25,7 @@ def read_keystrokes():
 
 def write(string):
     """Send `string` immediately to standard output, without buffering."""
-    os.write(stdout_fd, string)
+    os.write(stdout_fd, string.encode('ascii'))
 
 def main_loop(arguments, is_interactive):
     """Run and report on tests while also letting the user type commands."""

@@ -36,7 +36,8 @@ def import_modules(module_names):
     return import_events
 
 def list_module_paths():
-    return [(name, module.__file__) for name, module in sys.modules.items()
+    items = list(sys.modules.items())
+    return [(name, module.__file__) for name, module in items
             if (module is not None) and hasattr(module, '__file__')]
 
 def improve_order(import_events):

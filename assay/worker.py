@@ -117,7 +117,7 @@ def worker_process(from_parent, to_parent, sync_to_parent):
         if function is os.fork:
             if result:
                 os.waitpid(result, 0)
-                os.write(sync_to_parent, '_')
+                os.write(sync_to_parent, b'_')
                 continue
             result = os.getpid()
         elif isinstance(result, GeneratorType):
