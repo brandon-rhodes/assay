@@ -79,7 +79,7 @@ class Filesystem(object):
         fd = self.fd
         paths = set(dirname(path) for path in file_paths) - self.paths
         for path in paths:
-            d = _libc.inotify_add_watch(fd, path, MASK)
+            d = _libc.inotify_add_watch(fd, path.encode('ascii'), MASK)
             self.paths.add(path)
             self.descriptors[d] = path
 

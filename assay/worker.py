@@ -29,6 +29,10 @@ class Worker(object):
         unix.close_on_exec(from_worker)
         unix.close_on_exec(sync_from_worker)
 
+        unix.keep_on_exec(from_parent)
+        unix.keep_on_exec(to_parent)
+        unix.keep_on_exec(sync_to_parent)
+
         worker_pid = os.fork()
         if not worker_pid:
             os.setpgrp()  # prevent worker from receiving Ctrl-C

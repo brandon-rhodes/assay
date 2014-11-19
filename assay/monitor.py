@@ -50,7 +50,7 @@ def main_loop(arguments, is_interactive):
 
         paths_under_test = set()
         runner = run_all_tests(arguments, workers, paths_under_test)
-        runner.next()
+        next(runner)
 
         for source, flags in poller.events():
 

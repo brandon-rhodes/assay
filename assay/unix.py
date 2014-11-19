@@ -34,6 +34,10 @@ def close_on_exec(fd):
     """Set the close-on-exec flag of the file descriptor `fd`."""
     fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
 
+def keep_on_exec(fd):
+    """Clear the close-on-exec flag of the file descriptor `fd`."""
+    fcntl.fcntl(fd, fcntl.F_SETFD, 0)
+
 def cpu_count():
     """Return the number of CPUs on the system."""
     if os.path.exists('/proc/cpuinfo'):
