@@ -12,6 +12,8 @@ if _python3:
 else:
     import cPickle as pickle
 
+WORKER_TERMINATED = b'!'
+
 # A crucial setting!  If we were to allow buffering of data from the
 # worker, then the buffer might read ahead on the input stream and leave
 # the descriptor looking empty from the point of view of epoll().
@@ -63,8 +65,11 @@ class Worker(object):
 
         """
         unix.kill_dash_9(self.pids.pop())
-        os.read(self.sync_from_worker, 1)
+        assert os.read(self.sync_from_worker, 1) == WORKER_TERMINATED
+        # Subtle: worker could have died in mid-pickle
         unix.discard_input(self.from_worker.fileno())
+        self.from_worker = os.fdopen(os.dup(self.from_worker.fileno()),
+            'rb', FROM_WORKER_BUFSIZE)
 
     def call(self, function, *args, **kw):
         """Run a function in the worker process and return its result."""
@@ -117,7 +122,9 @@ def worker_process(from_parent, to_parent, sync_to_parent):
         if function is os.fork:
             if result:
                 os.waitpid(result, 0)
-                os.write(sync_to_parent, b'_')
+                # Subtle: worker can die with a command still inbound
+                unix.discard_input(from_parent.fileno())
+                os.write(sync_to_parent, WORKER_TERMINATED)
                 continue
             result = os.getpid()
         elif isinstance(result, GeneratorType):
