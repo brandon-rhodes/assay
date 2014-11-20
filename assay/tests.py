@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from . import samples
 from .discovery import interpret_argument
 from .importation import improve_order
-from .runner import run_test
+from .runner import run_tests_of, run_test
 
 _python3 = (sys.version_info.major >= 3)
 
@@ -128,6 +128,13 @@ class DiscoveryTests(unittest.TestCase):
         with self.cd('..'):
             self.assertEqual(interpret_argument(None, 'b/p1/p2'),
                              ('b', 'p1.p2'))
+
+
+class RunnerTests(unittest.TestCase):
+
+    def test_runner_on_good_module(self):
+        value = list(run_tests_of('assay.samples'))
+        self.assertEqual(len(value), 13)
 
 
 class ErrorMessageTests(unittest.TestCase):
