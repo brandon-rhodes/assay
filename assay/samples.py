@@ -4,7 +4,7 @@ def test_passing():
     pass
 
 def test_exc():
-    raise IOError('xyz')
+    raise OSError('xyz')
 
 def test_exc2():
     return test_exc()

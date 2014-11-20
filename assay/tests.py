@@ -162,17 +162,17 @@ class ErrorMessageTests(unittest.TestCase):
     def test_raising_exception(self):
         result = self.execute(samples.test_exc)
         self.assertEqual(result, [
-            ('E', 'IOError', 'xyz', [
-                ('assay/samples.py', 1, 'test_exc', "raise IOError('xyz')"),
+            ('E', 'OSError', 'xyz', [
+                ('assay/samples.py', 1, 'test_exc', "raise OSError('xyz')"),
                 ]),
             ])
 
     def test_raising_exception_from_subroutine(self):
         result = self.execute(samples.test_exc2)
         self.assertEqual(result, [
-            ('E', 'IOError', 'xyz', [
+            ('E', 'OSError', 'xyz', [
                 ('assay/samples.py', 1, 'test_exc2', "return test_exc()"),
-                ('assay/samples.py', -2, 'test_exc', "raise IOError('xyz')"),
+                ('assay/samples.py', -2, 'test_exc', "raise OSError('xyz')"),
                 ]),
             ])
 
@@ -219,10 +219,10 @@ class ErrorMessageTests(unittest.TestCase):
     def test_fix4(self):
         result = self.execute(samples.test_fix4)
         self.assertEqual(result, [
-            ('F', 'IOError', 'xyz', [
+            ('F', 'OSError', 'xyz', [
                 ('assay/samples.py', 0, 'test_fix4',
                  'Call to fixture test_exc()'),
-                ('assay/samples.py', -27, 'test_exc', "raise IOError('xyz')"),
+                ('assay/samples.py', -27, 'test_exc', "raise OSError('xyz')"),
                 ]),
             ])
 
