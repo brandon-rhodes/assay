@@ -45,14 +45,21 @@ def cpu_count():
             return f.read().count('\nbogomips')
     return 2
 
-def discard_input(fd):
-    """Discard all bytes waiting to be read from a given file descriptor."""
+def discard_input(fileobj, bufsize):
+    """Discard all bytes queued for input on `fileobj`.
+
+    Bytes queued in the operating system are disposed of through an
+    ``os.read()``, and bytes in our own buffers by replacing the object.
+
+    """
+    fd = fileobj.fileno()
     fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
     try:
         os.read(fd, _everything)
     except OSError:
         pass
     fcntl.fcntl(fd, fcntl.F_SETFL, 0)
+    return os.fdopen(os.dup(fd), fileobj.mode, bufsize)
 
 def kill_dash_9(pid):
     """Kill a process with a signal that cannot be caught or ignored."""
