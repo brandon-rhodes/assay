@@ -127,11 +127,9 @@ def run_test_with_arguments(module, test, code, args):
     try:
         test(*args)
     except AssertionError:
-        tb = sys.exc_info()[2]
-        frames = traceback.extract_tb(tb)
+        frames = traceback_frames()
     except Exception as e:
-        tb = sys.exc_info()[2]
-        frames = traceback.extract_tb(tb)[1:]
+        frames = traceback_frames()
         return 'E', e.__class__.__name__, str(e), add_args(frames, args)
     else:
         return '.'
