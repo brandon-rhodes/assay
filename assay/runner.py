@@ -152,10 +152,9 @@ def relativize(path):
 
 def add_args(frames, args):
     """Rewrite traceback to show the test function's arguments."""
-    path, lineno, name, line = frames[-1]
-    if len(args) == 1:
-        name = '{}({!r})'.format(name, args[0])
-    elif args:
-        name = '{}{!r}'.format(name, args)
-    frames[-1] = (path, lineno, name, line)
+    if args:
+        path, lineno, name, line = frames[-1]
+        argstr = repr(args)[1:-1].rstrip(',')
+        name = '{}({})'.format(name, argstr)
+        frames[-1] = (path, lineno, name, line)
     return frames
