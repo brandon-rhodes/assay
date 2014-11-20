@@ -50,6 +50,12 @@ def run_tests_of(module_name):
         frames = [(relativize(e.filename), e.lineno, None, line)]
         yield 'F', 'SyntaxError', e.msg, frames
         return
+    except Exception as e:
+        frames = traceback_frames()
+        frames = [frame for frame in frames if ('/importlib/' not in frame[0])
+                                           and (' importlib.' not in frame[0])]
+        yield 'F', e.__class__.__name__, str(e), frames
+        return
 
     tests = sorted((k, v) for k, v in module.__dict__.items()
                    if k.startswith('test_')

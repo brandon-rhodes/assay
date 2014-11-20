@@ -132,6 +132,8 @@ class DiscoveryTests(unittest.TestCase):
 
 class RunnerTests(unittest.TestCase):
 
+    maxDiff = 9999
+
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
         self.assertEqual(len(value), 14)
@@ -149,6 +151,26 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(value, [
             ('F', 'SyntaxError', 'invalid syntax',
              [(f.name, 3, None, 'if while\n       ^')]),
+            ])
+
+    def test_runner_on_module_that_throws_exception_during_import(self):
+        with tempfile.NamedTemporaryFile(suffix='.py') as f1, \
+             tempfile.NamedTemporaryFile(suffix='.py') as f2:
+            f1_name = os.path.basename(f1.name)[:-3]
+            f2_name = os.path.basename(f2.name)[:-3]
+            f1.write(b'\n\n\nimport ' + f2_name.encode('ascii') + b'\n')
+            f1.flush()
+            f2.write(b'\n{}["key"]\n')
+            f2.flush()
+            sys.path.insert(0, os.path.dirname(f1.name))
+            try:
+                value = list(run_tests_of(f1_name))
+            finally:
+                del sys.path[0]
+        self.assertEqual(value, [
+            ('F', 'KeyError', "'key'",
+             [(f1.name, 4, '<module>', 'import {}'.format(f2_name)),
+              (f2.name, 2, '<module>', '{}["key"]')]),
             ])
 
 
