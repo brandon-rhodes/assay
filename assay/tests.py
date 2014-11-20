@@ -143,7 +143,8 @@ class RunnerTests(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
             f.write(b'\n\nif while\n')
             f.flush()
-            module_name = os.path.basename(f.name)[:-3]
+            basename = os.path.basename(f.name)
+            module_name = basename[:-3]
             sys.path.insert(0, os.path.dirname(f.name))
             if _python3:
                 importlib.invalidate_caches()
@@ -152,7 +153,8 @@ class RunnerTests(unittest.TestCase):
             finally:
                 del sys.path[0]
         self.assertEqual(value, [
-            ('F', 'SyntaxError', 'invalid syntax',
+            ('F', 'SyntaxError',
+             'invalid syntax ({}, line 3)'.format(basename),
              [(f.name, 3, None, 'if while\n       ^')]),
             ])
 

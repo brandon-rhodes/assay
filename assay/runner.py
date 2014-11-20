@@ -45,15 +45,10 @@ def run_tests_of(module_name):
     """Run all tests discovered inside of a module."""
     try:
         module = import_module(module_name)
-    except SyntaxError as e:
-        line = '{}\n{}^'.format(e.text.rstrip(), ' ' * (e.offset - 1))
-        frames = [(relativize(e.filename), e.lineno, None, line)]
-        yield 'F', 'SyntaxError', e.msg, frames
-        return
     except Exception as e:
-        frames = traceback_frames()
-        frames = [frame for frame in frames if ('/importlib/' not in frame[0])
-                                           and (' importlib.' not in frame[0])]
+        frames = [frame for frame in traceback_frames()
+                  if ('/importlib/' not in frame[0])
+                  and (' importlib.' not in frame[0])]
         yield 'F', e.__class__.__name__, str(e), frames
         return
 
