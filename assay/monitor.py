@@ -176,7 +176,7 @@ def pretty_print_exception(character, name, message, frames, out='', err=''):
         b = '{}'.format(function_name)
         f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
         print(f.format(a, b))
-        print('   ', blue(text))
+        print(blue('    ' + text.replace('\n', '\n    ')))
     print(red('{}: {}'.format(name, message)))
     print()
 

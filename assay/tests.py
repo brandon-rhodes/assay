@@ -136,6 +136,21 @@ class RunnerTests(unittest.TestCase):
         value = list(run_tests_of('assay.samples'))
         self.assertEqual(len(value), 13)
 
+    def test_runner_on_syntax_error(self):
+        with tempfile.NamedTemporaryFile(suffix='.py') as f:
+            f.write(b'\n\nif while\n')
+            f.flush()
+            module_name = os.path.basename(f.name)[:-3]
+            sys.path.insert(0, os.path.dirname(f.name))
+            try:
+                value = list(run_tests_of(module_name))
+            finally:
+                del sys.path[0]
+        self.assertEqual(value, [
+            ('F', 'SyntaxError', 'invalid syntax',
+             [(f.name, 3, None, 'if while\n       ^')]),
+            ])
+
 
 class ErrorMessageTests(unittest.TestCase):
 

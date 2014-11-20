@@ -46,10 +46,9 @@ def run_tests_of(module_name):
     try:
         module = import_module(module_name)
     except SyntaxError as e:
-        # TODO: make this message format less crazily
-        # probably by writing our own format_exception_only()
-        message = ''.join(traceback.format_exception_only(e.__class__, e))
-        yield 'F', e.__class__.__name__, message, []
+        line = '{}\n{}^'.format(e.text.rstrip(), ' ' * (e.offset - 1))
+        frames = [(relativize(e.filename), e.lineno, None, line)]
+        yield 'F', 'SyntaxError', e.msg, frames
         return
 
     tests = sorted((k, v) for k, v in module.__dict__.items()
