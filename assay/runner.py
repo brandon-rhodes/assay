@@ -139,10 +139,14 @@ def run_test_with_arguments(module, test, code, args):
 
 def traceback_frames():
     """Return all traceback frames for code outside of this file."""
-    raw_frames = traceback.extract_tb(sys.exc_info()[2])
-    return [(relativize(filename), lineno, name, line)
-            for filename, lineno, name, line in raw_frames
-            if filename != __file__]
+    etype, e, tb = sys.exc_info()
+    frames = [(relativize(filename), lineno, name, line)
+              for filename, lineno, name, line in traceback.extract_tb(tb)
+              if filename != __file__]
+    if isinstance(e, SyntaxError):
+        line = '{}\n{}^'.format(e.text.rstrip(), ' ' * (e.offset - 1))
+        frames.append((relativize(e.filename), e.lineno, None, line))
+    return frames
 
 def relativize(path):
     """Turn a path into a relative path if it lives beneath our directory."""

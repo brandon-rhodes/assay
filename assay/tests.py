@@ -169,10 +169,11 @@ class ErrorMessageTests(unittest.TestCase):
         result = list(run_test(samples, test))
         for item in result:
             if isinstance(item, tuple):
-                trace = item[3]
-                for i, frame in enumerate(trace):
-                    w, x, y, z = frame
-                    trace[i] = w, x - base, y, z
+                frames = item[3]
+                for i in range(len(frames)):
+                    filename, lineno, name, line = frames[i]
+                    if filename.rstrip('c').endswith('/samples.py'):
+                        frames[i] = filename, lineno - base, name, line
         return result
 
     def test_passing(self):
@@ -253,6 +254,7 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(result, [
             ('E', 'SyntaxError', 'invalid syntax (<string>, line 1)', [
                 ('assay/samples.py', 1, 'test_syntax_error', "eval('1+2@3')"),
+                ('<string>', 1, None, '1+2@3\n   ^'),
                 ]),
             ])
 
