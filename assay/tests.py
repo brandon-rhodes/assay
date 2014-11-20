@@ -5,6 +5,7 @@ To run these tests, simply invoke::
     $ python -m assay.tests
 
 """
+import importlib
 import os
 import shutil
 import sys
@@ -144,6 +145,8 @@ class RunnerTests(unittest.TestCase):
             f.flush()
             module_name = os.path.basename(f.name)[:-3]
             sys.path.insert(0, os.path.dirname(f.name))
+            if _python3:
+                importlib.invalidate_caches()
             try:
                 value = list(run_tests_of(module_name))
             finally:
@@ -156,20 +159,22 @@ class RunnerTests(unittest.TestCase):
     def test_runner_on_module_that_throws_exception_during_import(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f1, \
              tempfile.NamedTemporaryFile(suffix='.py') as f2:
-            f1_name = os.path.basename(f1.name)[:-3]
-            f2_name = os.path.basename(f2.name)[:-3]
-            f1.write(b'\n\n\nimport ' + f2_name.encode('ascii') + b'\n')
+            module_name1 = os.path.basename(f1.name)[:-3]
+            module_name2 = os.path.basename(f2.name)[:-3]
+            f1.write(b'\n\n\nimport ' + module_name2.encode('ascii') + b'\n')
             f1.flush()
             f2.write(b'\n{}["key"]\n')
             f2.flush()
             sys.path.insert(0, os.path.dirname(f1.name))
+            if _python3:
+                importlib.invalidate_caches()
             try:
-                value = list(run_tests_of(f1_name))
+                value = list(run_tests_of(module_name1))
             finally:
                 del sys.path[0]
         self.assertEqual(value, [
             ('F', 'KeyError', "'key'",
-             [(f1.name, 4, '<module>', 'import {}'.format(f2_name)),
+             [(f1.name, 4, '<module>', 'import {}'.format(module_name2)),
               (f2.name, 2, '<module>', '{}["key"]')]),
             ])
 
