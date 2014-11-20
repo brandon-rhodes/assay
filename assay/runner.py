@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import inspect
 import linecache
+import os
 import sys
 import traceback
 from .assertion import rerun_failing_assert
@@ -139,15 +140,22 @@ def run_test_with_arguments(module, test, code, args):
 
 def traceback_frames():
     """Return all traceback frames for code outside of this file."""
-    return [frame for frame in traceback.extract_tb(sys.exc_info()[2])
-            if frame[0] != __file__]
+    raw_frames = traceback.extract_tb(sys.exc_info()[2])
+    return [(relative(filename), lineno, name, line)
+            for filename, lineno, name, line in raw_frames
+            if filename != __file__]
+
+def relative(path):
+    """Turn a path into a relative path if it lives beneath our directory."""
+    relative = os.path.relpath(path)
+    return path if relative.startswith('..') else relative
 
 def add_args(frames, args):
     """Rewrite traceback to show the test function's arguments."""
-    filename, lineno, name, line = frames[-1]
+    path, lineno, name, line = frames[-1]
     if len(args) == 1:
         name = '{}({!r})'.format(name, args[0])
     elif args:
         name = '{}{!r}'.format(name, args)
-    frames[-1] = (filename, lineno, name, line)
+    frames[-1] = (path, lineno, name, line)
     return frames
