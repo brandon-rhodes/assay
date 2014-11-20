@@ -74,7 +74,7 @@ def run_test(module, test):
             yield run_test_with_arguments(module, test, code, args)
     except Exception as e:
         frames = traceback_frames()
-        filename = code.co_filename
+        filename = relativize(code.co_filename)
         firstlineno = code.co_firstlineno
         if len(frames):
             line = 'Call to fixture {}()'.format(frames[0][2])
@@ -141,11 +141,11 @@ def run_test_with_arguments(module, test, code, args):
 def traceback_frames():
     """Return all traceback frames for code outside of this file."""
     raw_frames = traceback.extract_tb(sys.exc_info()[2])
-    return [(relative(filename), lineno, name, line)
+    return [(relativize(filename), lineno, name, line)
             for filename, lineno, name, line in raw_frames
             if filename != __file__]
 
-def relative(path):
+def relativize(path):
     """Turn a path into a relative path if it lives beneath our directory."""
     relative = os.path.relpath(path)
     return path if relative.startswith('..') else relative
