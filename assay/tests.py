@@ -134,7 +134,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
-        self.assertEqual(len(value), 13)
+        self.assertEqual(len(value), 14)
 
     def test_runner_on_syntax_error(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
@@ -245,6 +245,14 @@ class ErrorMessageTests(unittest.TestCase):
                 ('assay/samples.py', 0, 'test_fix4',
                  'Call to fixture test_exc()'),
                 ('assay/samples.py', -27, 'test_exc', "raise OSError('xyz')"),
+                ]),
+            ])
+
+    def test_syntax_error(self):
+        result = self.execute(samples.test_syntax_error)
+        self.assertEqual(result, [
+            ('E', 'SyntaxError', 'invalid syntax (<string>, line 1)', [
+                ('assay/samples.py', 1, 'test_syntax_error', "eval('1+2@3')"),
                 ]),
             ])
 
