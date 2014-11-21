@@ -3,6 +3,9 @@
 def test_passing():
     pass
 
+def test_assert0():
+    assert False
+
 def test_exc():
     raise OSError('xyz')
 

@@ -127,16 +127,17 @@ def run_test_with_arguments(module, test, code, args):
     """Return the result of invoking a test with the given arguments."""
     try:
         test(*args)
-    except AssertionError:
+    except AssertionError as e:
         frames = traceback_frames()
+        message = rerun_failing_assert(test, code, args)
+        if message is not None:
+            return 'E', 'AssertionError', message, add_args(frames[-1:], args)
+        return 'E', e.__class__.__name__, str(e), add_args(frames, args)
     except Exception as e:
         frames = traceback_frames()
         return 'E', e.__class__.__name__, str(e), add_args(frames, args)
     else:
         return '.'
-
-    message = rerun_failing_assert(test, code, args)
-    return 'E', 'AssertionError', message, add_args(frames[-1:], args)
 
 def traceback_frames():
     """Return all traceback frames for code outside of this file."""

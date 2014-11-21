@@ -18,7 +18,7 @@ class AssayCompareError(Exception):
         self.b = b
         self.symbol = symbol
 
-additional_consts = dis.cmp_op + (AssayCompareError,)
+additional_consts = (AssayCompareError,) + dis.cmp_op
 
 def rerun_failing_assert(test, code_object, args):
     """Re-run test() after rewriting its asserts for introspection."""
@@ -30,11 +30,15 @@ def rerun_failing_assert(test, code_object, args):
     else:
         bytecode = [ord(b) for b in c.co_code]
 
+    i = c.co_names.index('AssertionError')
+    if i == -1:
+        return None
+    assert_msb, assert_lsb = divmod(i, 256)
+
     consts = c.co_consts
-    cmp_base = len(consts)
+    exception_msb, exception_lsb = divmod(len(consts), 256)
+    cmp_base = len(consts) + 1
     consts = consts + additional_consts
-    exception_msb, exception_lsb = divmod(consts.index(AssayCompareError), 256)
-    assert_msb, assert_lsb = divmod(c.co_names.index('AssertionError'), 256)
 
     i = 0
     original_length = len(bytecode)
@@ -77,8 +81,10 @@ def rerun_failing_assert(test, code_object, args):
         test(*args)
     except AssayCompareError as e:
         return 'it is false that {!r} {} {!r}'.format(e.a, e.symbol, e.b)
+    except Exception:
+        return None
     else:
-        return 'drat, no exception was raised the second time'
+        return None
 
 def install_handler(bytecode, i, cmp_base, exception_lsb, exception_msb):
     """The index `i` should point at the COMPARE_OP of an assert."""
