@@ -9,6 +9,12 @@ def test_assert0():
 def test_assert1():
     assert 1+1 == 2+2
 
+def sub_assert2():
+    assert 2+2 == 3+3
+
+def test_assert2():
+    sub_assert2()
+
 def test_exc():
     raise OSError('xyz')
 

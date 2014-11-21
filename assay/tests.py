@@ -137,7 +137,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
-        self.assertEqual(len(value), 16)
+        self.assertEqual(len(value), 17)
 
     def test_runner_on_syntax_error(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
@@ -224,6 +224,15 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(result, [
             ('E', 'AssertionError', 'it is false that 2 == 4', [
                 ('assay/samples.py', 1, 'test_assert1', 'assert 1+1 == 2+2')
+                ]),
+            ])
+
+    def test_equality_assertion_in_subroutine(self):
+        result = self.execute(samples.test_assert2)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '', [ #'it is false that 2 == 4', [
+                ('assay/samples.py', 1, 'test_assert2', 'sub_assert2()'),
+                ('assay/samples.py', -2, 'sub_assert2', 'assert 2+2 == 3+3')
                 ]),
             ])
 
