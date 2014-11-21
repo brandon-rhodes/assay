@@ -30,7 +30,7 @@ def rerun_failing_assert(test, code_object, args):
     else:
         bytecode = [ord(b) for b in c.co_code]
 
-    i = c.co_names.index('AssertionError')
+    i = c.co_names.find('AssertionError')
     if i == -1:
         return None
     assert_msb, assert_lsb = divmod(i, 256)
