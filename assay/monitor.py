@@ -177,7 +177,8 @@ def pretty_print_exception(character, name, message, frames, out='', err=''):
         f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
         print(f.format(a, b))
         print(blue('    ' + text.replace('\n', '\n    ')))
-    print(red('{}: {}'.format(name, message)))
+    line = '{}: {}'.format(name, message) if message else name
+    print(red(line))
     print()
 
 def black(text): # ';47' does bg color
