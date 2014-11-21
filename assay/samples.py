@@ -6,6 +6,9 @@ def test_passing():
 def test_assert0():
     assert False
 
+def test_assert1():
+    assert 1+1 == 2+2
+
 def test_exc():
     raise OSError('xyz')
 
