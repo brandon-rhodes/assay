@@ -134,7 +134,7 @@ def run_test_with_arguments(test, args):
     else:
         return '.'
 
-    if issubclass(exception_class, AssertionError):
+    if message == '' and issubclass(exception_class, AssertionError):
         filename, lineno, name, text = frames[-1]
         if text.startswith('assert '):
             better_message = introspect_assert(test, args, filename, lineno)

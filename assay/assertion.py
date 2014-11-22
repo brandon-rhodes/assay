@@ -29,9 +29,18 @@ def introspect_assert(test, args, filename, lineno):
     # print('---')
     # while tb.tb_next:
     #     tb = tb.tb_next
-    # debugger = Debugger()
-    # debugger.set_break(tb.tb_frame.f_code.co_filename, tb.tb_lineno)
-    # debugger.runcall(test, *args)
+
+    # debug = Debugger()
+    # debug.set_break(filename, lineno)
+    # try:
+    #     debug.runcall(test, *args)
+    # except AssertionError:
+    #     print(debug.count)
+    # except Exception:
+    #     return ('Assay can not introspect this assertion - 
+    # else:
+    # print(vars(debug).keys())
+
     # print(debugger.locals)
     # print(repr(debugger.code.co_code))
     # import dis
@@ -141,12 +150,20 @@ def install_handler(bytecode, i, cmp_base, exception_lsb, exception_msb):
         ])
 
 class Debugger(bdb.Bdb):
+    """Bring a function to its first breakpoint, then stop."""
+
+    count = 0
+    limit = None
+
     def user_line(self, frame):
         if not self.break_here(frame):
             self.set_continue()
             return
-        self.code = frame.f_code
-        self.globals = frame.f_globals
-        self.lasti = frame.f_lasti
-        self.locals = frame.f_locals
-        self.set_quit()
+        count = self.count = self.count + 1
+        limit = self.limit
+        if (limit is not None) and (count >= limit):
+            self.code = frame.f_code
+            self.globals = frame.f_globals
+            self.lasti = frame.f_lasti
+            self.locals = frame.f_locals
+            self.set_quit()
