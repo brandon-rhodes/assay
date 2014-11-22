@@ -6,7 +6,6 @@ import inspect
 import linecache
 import os
 import sys
-import traceback
 from types import FunctionType
 from .assertion import rewrite_asserts_in
 from .importation import import_module
@@ -135,12 +134,8 @@ def run_test_with_arguments(test, args):
     except AssertionError as e:
         type_name = type(e).__name__
         message = str(e)
-        frames = traceback_frames()
+        frames, tb_frame = traceback_frames(return_top_frame=True)
         filename, lineno, name, text = frames[-1]
-        tb = sys.exc_info()[2]
-        while tb.tb_next:
-            tb = tb.tb_next
-        tb_frame = tb.tb_frame
         failed_code = tb_frame.f_code
         test_code = _get_code(test)
         if failed_code is test_code:
@@ -153,7 +148,6 @@ def run_test_with_arguments(test, args):
                 function = maybe_function
             else:
                 function = None
-        del tb
         del tb_frame
     except Exception as e:
         frames = traceback_frames()
@@ -183,16 +177,30 @@ def run_test_with_arguments(test, args):
 
     return 'E', type_name, message, add_args(frames, args)
 
-def traceback_frames():
-    """Return all traceback frames for code outside of this file."""
+def traceback_frames(return_top_frame=False):
+    """Return traceback frames for code outside of this file.
+
+    The result is a list of tuples in the usual style of extract_tb(tb),
+    except that a bonus tuple is added in the case of a SyntaxError.  If
+    `return_top_frame` is true, a frame object is also returned.
+
+    """
     etype, e, tb = sys.exc_info()
-    frames = [(relativize(filename), lineno, name, line)
-              for filename, lineno, name, line in traceback.extract_tb(tb)
-              if filename != __file__]
+    tuples = []
+    while tb is not None:
+        frame = tb.tb_frame
+        code = frame.f_code
+        filename = code.co_filename
+        if filename != __file__:
+            lineno = frame.f_lineno
+            line = linecache.getline(filename, lineno, frame.f_globals)
+            line = line.strip() if line else None
+            tuples.append((relativize(filename), lineno, code.co_name, line))
+        tb = tb.tb_next
     if isinstance(e, SyntaxError):
         line = '{}\n{}^'.format(e.text.rstrip(), ' ' * (e.offset - 1))
-        frames.append((relativize(e.filename), e.lineno, None, line))
-    return frames
+        tuples.append((relativize(e.filename), e.lineno, None, line))
+    return (tuples, frame) if return_top_frame else tuples
 
 def relativize(path):
     """Turn a path into a relative path if it lives beneath our directory."""
