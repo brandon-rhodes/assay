@@ -18,6 +18,14 @@ def test_assert2():
 def test_assert_tab():
     assert	1+1 == 3
 
+flag = False
+def test_assert_then_die():
+    global flag
+    if flag:
+        raise ValueError('bad value')
+    flag = True
+    assert 1+1 == 3
+
 def test_exc():
     raise OSError('xyz')
 

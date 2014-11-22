@@ -13,13 +13,18 @@ class op(object):
 for i, symbol in enumerate(dis.opname):
     setattr(op, symbol.lower(), i)
 
-class AssayCompareError(Exception):
-    def __init__(self, a, b, symbol):
+_builtin_AssertionError = AssertionError
+
+class AssertionError(Exception):
+    def __init__(self, a, b, op):
         self.a = a
         self.b = b
-        self.symbol = symbol
+        self.op = op
 
-additional_consts = (AssayCompareError,) + dis.cmp_op
+    def __str__(self):
+        return 'it is false that {!r} {} {!r}'.format(self.a, self.op, self.b)
+
+additional_consts = (AssertionError,) + dis.cmp_op
 
 def fast_introspect(test, args, code, filename, lineno):
     """Re-run test() after rewriting its asserts for introspection."""
@@ -90,10 +95,14 @@ def fast_introspect(test, args, code, filename, lineno):
 
     try:
         test(*args)
-    except AssayCompareError as e:
-        return 'it is false that {!r} {} {!r}'.format(e.a, e.symbol, e.b)
-    except Exception:
+    except AssertionError as e:
+        return str(e)
+    except _builtin_AssertionError:
         return ''
+    except Exception as e:
+        type_name, message = type(e).__name__, str(e)
+        return ('Assay re-ran your test to examine its failed assert but the'
+                ' second time it raised {}: {}'.format(type_name, message))
     else:
         return ''
 
