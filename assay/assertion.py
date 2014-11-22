@@ -9,18 +9,12 @@ from types import FunctionType
 
 _python3 = (sys.version_info.major >= 3)
 _case = unittest.TestCase('setUp')
-_methods = {
-    '<': _case.assertLess,
-    '<=': _case.assertLessEqual,
+_assert_methods = {
     '==': _case.assertEqual,
-    '!=': _case.assertNotEqual,
-    '>': _case.assertGreater,
-    '>=': _case.assertGreaterEqual,
     'in': _case.assertIn,
     'not in': _case.assertNotIn,
     'is': _case.assertIs,
     'is not': _case.assertIsNot,
-    'exception match': _case.assertIsInstance,  # TODO: is this guess correct?
     }
 
 class op(object):
@@ -31,8 +25,11 @@ for i, symbol in enumerate(dis.opname):
 
 def _format(value1, value2, operator):
     """Attractively format a failure of value1 <operator> value2."""
+    method = _assert_methods.get(operator)
+    if method is None:
+        return '{!r}\n{:>15} {!r}'.format(value1, 'is not ' + operator, value2)
     try:
-        _methods[operator](value1, value2)
+        method(value1, value2)
     except AssertionError as e:
         return str(e)
 

@@ -303,7 +303,7 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(result, [
             '.',
             '.',
-            ('E', 'AssertionError', '2 == 2', [
+            ('E', 'AssertionError', '2\n      is not != 2', [
                 ('assay/samples.py', 1, 'test_fix2(2)', 'assert fix2 != 2'),
                 ]),
             '.',
@@ -313,7 +313,7 @@ class ErrorMessageTests(unittest.TestCase):
         result = self.execute(samples.test_fix3)
         self.assertEqual(result, [
             '.',
-            ('E', 'AssertionError', '1 == 1', [
+            ('E', 'AssertionError', '1\n      is not != 1', [
                 ('assay/samples.py', 1, 'test_fix3(1)', 'assert fix3 != 1'),
                 ]),
             ('F', 'ValueError', 'xyz', [
