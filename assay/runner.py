@@ -7,7 +7,7 @@ import linecache
 import os
 import sys
 from types import FunctionType
-from .assertion import rewrite_asserts_in
+from .assertion import get_code, search_for_function, rewrite_asserts_in
 from .importation import import_module
 
 class Failure(Exception):
@@ -20,9 +20,6 @@ if _python3:
     from io import StringIO
 else:
     from StringIO import StringIO
-
-def _get_code(function):
-    return function.__code__ if _python3 else function.func_code
 
 def capture_stdout_stderr(generator, *args):
     """Call a generator, supplementing its tuples with stdout, stderr data."""
@@ -65,7 +62,7 @@ def run_tests_of(module_name):
 
 def run_test(module, test):
     """Run a test, detecting whether it needs fixtures and providing them."""
-    code = _get_code(test)
+    code = get_code(test)
     if not code.co_argcount:
         yield run_test_with_arguments(test, ())
         return
@@ -134,21 +131,10 @@ def run_test_with_arguments(test, args):
     except AssertionError as e:
         type_name = type(e).__name__
         message = str(e)
-        frames, tb_frame = traceback_frames(return_top_frame=True)
+        frames, frame = traceback_frames(return_top_frame=True)
         filename, lineno, name, text = frames[-1]
-        failed_code = tb_frame.f_code
-        test_code = _get_code(test)
-        if failed_code is test_code:
-            function = test
-        else:
-            maybe_function = (tb_frame.f_locals.get(name) or
-                              tb_frame.f_globals.get(name))
-            if (isinstance(maybe_function, FunctionType)
-                  and _get_code(maybe_function) is failed_code):
-                function = maybe_function
-            else:
-                function = None
-        del tb_frame
+        function = search_for_function(frame.f_code, test, frame, name)
+        del frame
     except Exception as e:
         frames = traceback_frames()
         return 'E', type(e).__name__, str(e), add_args(frames, args)

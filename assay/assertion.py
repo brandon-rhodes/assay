@@ -4,6 +4,7 @@ import bdb
 import dis
 import sys
 import types
+from types import FunctionType
 
 _python3 = (sys.version_info.major >= 3)
 
@@ -15,6 +16,19 @@ for i, symbol in enumerate(dis.opname):
 
 _format = 'it is false that {0!r} {2} {1!r}'.format
 _additional_consts = (_format, AssertionError) + dis.cmp_op
+
+def get_code(function):
+    return function.__code__ if _python3 else function.func_code
+
+def search_for_function(code, candidate, frame, name):
+    """Find the function whose code object is `code`, else return None."""
+    if get_code(candidate) is code:
+        return candidate
+    candidate = frame.f_locals.get(name) or frame.f_globals.get(name)
+    if isinstance(candidate, FunctionType):
+        if get_code(candidate) is code:
+            return candidate
+    return None
 
 def rewrite_asserts_in(function):
     """Re-run test() after rewriting its asserts for introspection."""
