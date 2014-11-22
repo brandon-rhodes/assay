@@ -4,9 +4,24 @@ import bdb
 import dis
 import sys
 import types
+import unittest
 from types import FunctionType
 
 _python3 = (sys.version_info.major >= 3)
+_case = unittest.TestCase('setUp')
+_methods = {
+    '<': _case.assertLess,
+    '<=': _case.assertLessEqual,
+    '==': _case.assertEqual,
+    '!=': _case.assertNotEqual,
+    '>': _case.assertGreater,
+    '>=': _case.assertGreaterEqual,
+    'in': _case.assertIn,
+    'not in': _case.assertNotIn,
+    'is': _case.assertIs,
+    'is not': _case.assertIsNot,
+    'exception match': _case.assertIsInstance,  # TODO: is this guess correct?
+    }
 
 class op(object):
     """Op code symbols."""
@@ -14,7 +29,13 @@ class op(object):
 for i, symbol in enumerate(dis.opname):
     setattr(op, symbol.lower(), i)
 
-_format = 'it is false that {0!r} {2} {1!r}'.format
+def _format(value1, value2, operator):
+    """Attractively format a failure of value1 <operator> value2."""
+    try:
+        _methods[operator](value1, value2)
+    except AssertionError as e:
+        return str(e)
+
 _additional_consts = (_format, AssertionError) + dis.cmp_op
 
 def get_code(function):

@@ -222,7 +222,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_equality_assertion(self):
         result = self.execute(samples.test_assert1)
         self.assertEqual(result, [
-            ('E', 'AssertionError', 'it is false that 2 == 4', [
+            ('E', 'AssertionError', '2 != 4', [
                 ('assay/samples.py', 1, 'test_assert1', 'assert 1+1 == 2+2')
                 ]),
             ])
@@ -230,7 +230,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_equality_assertion_in_subroutine(self):
         result = self.execute(samples.test_assert2)
         self.assertEqual(result, [
-            ('E', 'AssertionError', 'it is false that 4 == 6', [
+            ('E', 'AssertionError', '4 != 6', [
                 ('assay/samples.py', 1, 'test_assert2', 'sub_assert2()'),
                 ('assay/samples.py', -2, 'sub_assert2', 'assert 2+2 == 3+3')
                 ]),
@@ -239,7 +239,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_assert_with_tab(self):
         result = self.execute(samples.test_assert_tab)
         self.assertEqual(result, [
-            ('E', 'AssertionError', 'it is false that 2 == 3', [
+            ('E', 'AssertionError', '2 != 3', [
                 ('assay/samples.py', 1, 'test_assert_tab', 'assert\t1+1 == 3')
                 ]),
             ])
@@ -303,7 +303,7 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(result, [
             '.',
             '.',
-            ('E', 'AssertionError', 'it is false that 2 != 2', [
+            ('E', 'AssertionError', '2 == 2', [
                 ('assay/samples.py', 1, 'test_fix2(2)', 'assert fix2 != 2'),
                 ]),
             '.',
@@ -313,7 +313,7 @@ class ErrorMessageTests(unittest.TestCase):
         result = self.execute(samples.test_fix3)
         self.assertEqual(result, [
             '.',
-            ('E', 'AssertionError', 'it is false that 1 != 1', [
+            ('E', 'AssertionError', '1 == 1', [
                 ('assay/samples.py', 1, 'test_fix3(1)', 'assert fix3 != 1'),
                 ]),
             ('F', 'ValueError', 'xyz', [
