@@ -15,6 +15,9 @@ def sub_assert2():
 def test_assert2():
     sub_assert2()
 
+def test_assert_tab():
+    assert	1+1 == 3
+
 def test_exc():
     raise OSError('xyz')
 

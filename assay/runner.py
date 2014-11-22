@@ -134,7 +134,7 @@ def run_test_with_arguments(test, args):
         message = str(e)
         if not message:
             filename, lineno, name, text = frames[-1]
-            if text.startswith('assert '):
+            if text.startswith('assert') and text[6].isspace():
                 message = introspect_assert(test, args, filename, lineno)
         return 'E', type(e).__name__, message, add_args(frames, args)
     except Exception as e:
