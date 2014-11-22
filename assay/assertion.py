@@ -1,10 +1,11 @@
 """Routines to deal with the Python assert statement."""
 
+import bdb
 import dis
 import sys
 import types
 
-python3 = (sys.version_info.major >= 3)
+_python3 = (sys.version_info.major >= 3)
 
 class op(object):
     """Op code symbols."""
@@ -20,12 +21,24 @@ class AssayCompareError(Exception):
 
 additional_consts = (AssayCompareError,) + dis.cmp_op
 
-def rerun_failing_assert(test, code_object, args):
+def introspect_assert(test, args, filename, lineno):
     """Re-run test() after rewriting its asserts for introspection."""
 
-    c = code_object
+    c = test.__code__ if _python3 else test.func_code
 
-    if python3:
+    # print('---')
+    # while tb.tb_next:
+    #     tb = tb.tb_next
+    # debugger = Debugger()
+    # debugger.set_break(tb.tb_frame.f_code.co_filename, tb.tb_lineno)
+    # debugger.runcall(test, *args)
+    # print(debugger.locals)
+    # print(repr(debugger.code.co_code))
+    # import dis
+    # dis.dis(debugger.code)
+    # print(debugger.lasti)
+
+    if _python3:
         bytecode = list(c.co_code)
     else:
         bytecode = [ord(b) for b in c.co_code]
@@ -60,10 +73,10 @@ def rerun_failing_assert(test, code_object, args):
         else:
             i += 1 if (bytecode[i] < dis.HAVE_ARGUMENT) else 3
 
-    bytecode = bytes(bytecode) if python3 else ''.join(chr(b) for b in bytecode)
+    bytecode = bytes(bytecode) if _python3 else ''.join(chr(b) for b in bytecode)
     stacksize = c.co_stacksize + 2
 
-    if python3:
+    if _python3:
         argcounts = (c.co_argcount, c.co_kwonlyargcount)
     else:
         argcounts = (c.co_argcount,)
@@ -73,7 +86,7 @@ def rerun_failing_assert(test, code_object, args):
         c.co_varnames, c.co_filename, c.co_name, c.co_firstlineno, c.co_lnotab,
         c.co_freevars, c.co_cellvars))
 
-    if python3:
+    if _python3:
         test.__code__ = new_func_code
     else:
         test.func_code = new_func_code
@@ -100,13 +113,13 @@ def install_handler(bytecode, i, cmp_base, exception_lsb, exception_msb):
         op.jump_absolute, jump_to_handler_lsb, jump_to_handler_msb
         ]
 
-    reporting_msb, reporting_lsb = divmod(base + 14 - 2 * python3, 256)
+    reporting_msb, reporting_lsb = divmod(base + 14 - 2 * _python3, 256)
     symbol_msb, symbol_lsb = divmod(cmp_base + operator, 256)
 
     # Duplicate the two operands of "compare_op" then do comparison.
 
     bytecode.extend(
-        [op.dup_top_two] if python3 else [op.dup_topx, 2, 0]
+        [op.dup_top_two] if _python3 else [op.dup_topx, 2, 0]
         )
     bytecode.extend([
         op.compare_op, operator, 0,
@@ -126,3 +139,14 @@ def install_handler(bytecode, i, cmp_base, exception_lsb, exception_msb):
         op.call_function, 3, 0,
         op.raise_varargs, 1, 0,
         ])
+
+class Debugger(bdb.Bdb):
+    def user_line(self, frame):
+        if not self.break_here(frame):
+            self.set_continue()
+            return
+        self.code = frame.f_code
+        self.globals = frame.f_globals
+        self.lasti = frame.f_lasti
+        self.locals = frame.f_locals
+        self.set_quit()
