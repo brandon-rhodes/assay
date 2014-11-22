@@ -64,14 +64,14 @@ def run_test(module, test):
     """Run a test, detecting whether it needs fixtures and providing them."""
     code = test.__code__ if _python3 else test.func_code
     if not code.co_argcount:
-        yield run_test_with_arguments(module, test, code, ())
+        yield run_test_with_arguments(test, ())
         return
 
     try:
         names = inspect.getargs(code).args
         fixtures = [find_fixture(module, name) for name in names]
         for args in generate_arguments_from_fixtures(names, fixtures):
-            yield run_test_with_arguments(module, test, code, args)
+            yield run_test_with_arguments(test, args)
     except Exception as e:
         frames = traceback_frames()
         filename = relativize(code.co_filename)
@@ -123,7 +123,7 @@ def iterate_over_fixture(name, fixture):
     except Exception:
         raise Failure('fixture {!r} is not iterable'.format(name))
 
-def run_test_with_arguments(module, test, code, args):
+def run_test_with_arguments(test, args):
     """Return the result of invoking a test with the given arguments."""
     try:
         test(*args)
