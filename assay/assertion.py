@@ -13,18 +13,8 @@ class op(object):
 for i, symbol in enumerate(dis.opname):
     setattr(op, symbol.lower(), i)
 
-_builtin_AssertionError = AssertionError
-
-class AssertionError(Exception):
-    def __init__(self, a, b, op):
-        self.a = a
-        self.b = b
-        self.op = op
-
-    def __str__(self):
-        return 'it is false that {!r} {} {!r}'.format(self.a, self.op, self.b)
-
-additional_consts = (AssertionError,) + dis.cmp_op
+_format = 'it is false that {0!r} {2} {1!r}'.format
+_additional_consts = (_format, AssertionError) + dis.cmp_op
 
 def fast_introspect(test, args, code, filename, lineno):
     """Re-run test() after rewriting its asserts for introspection."""
@@ -50,25 +40,28 @@ def fast_introspect(test, args, code, filename, lineno):
     assert_msb, assert_lsb = divmod(i, 256)
 
     consts = c.co_consts
-    exception_msb, exception_lsb = divmod(len(consts), 256)
-    cmp_base = len(consts) + 1
-    consts = consts + additional_consts
+    length = len(consts)
+    format_msb, format_lsb = divmod(length, 256)
+    exception_msb, exception_lsb = divmod(length + 1, 256)
+    cmp_base = length + 2
+    consts = consts + _additional_consts
 
     i = 0
     original_length = len(bytecode)
 
-    load_assertion_error = [op.load_global, assert_lsb, assert_msb]
+    load_AssertionError = [op.load_global, assert_lsb, assert_msb]
 
     while i < original_length:
         if bytecode[i] == op.compare_op:
             i += 3
             if bytecode[i] == op.pop_jump_if_true:
                 i += 3
-                if bytecode[i:i+3] == load_assertion_error:
+                if bytecode[i:i+3] == load_AssertionError:
                     i += 3
                     if bytecode[i] == op.raise_varargs:
                         i += 3
                         install_handler(bytecode, i - 12, cmp_base,
+                                        format_lsb, format_msb,
                                         exception_lsb, exception_msb)
         else:
             i += 1 if (bytecode[i] < dis.HAVE_ARGUMENT) else 3
@@ -97,8 +90,6 @@ def fast_introspect(test, args, code, filename, lineno):
         test(*args)
     except AssertionError as e:
         return str(e)
-    except _builtin_AssertionError:
-        return ''
     except Exception as e:
         type_name, message = type(e).__name__, str(e)
         return ('Assay re-ran your test to examine its failed assert but the'
@@ -106,7 +97,8 @@ def fast_introspect(test, args, code, filename, lineno):
     else:
         return ''
 
-def install_handler(bytecode, i, cmp_base, exception_lsb, exception_msb):
+def install_handler(bytecode, i, cmp_base, format_lsb, format_msb,
+                    exception_lsb, exception_msb):
     """The index `i` should point at the COMPARE_OP of an assert."""
 
     base = len(bytecode)
@@ -139,10 +131,13 @@ def install_handler(bytecode, i, cmp_base, exception_lsb, exception_msb):
 
         # Otherwise, do reporting on the failed assertion.
 
-        op.load_const, exception_lsb, exception_msb,
+        op.load_const, format_lsb, format_msb,
         op.rot_three,
         op.load_const, symbol_lsb, symbol_msb,
         op.call_function, 3, 0,
+        op.load_const, exception_lsb, exception_msb,
+        op.rot_two,
+        op.call_function, 1, 0,
         op.raise_varargs, 1, 0,
         ])
 
