@@ -127,21 +127,20 @@ def run_test_with_arguments(test, args):
     """Return the result of invoking a test with the given arguments."""
     try:
         test(*args)
-    except Exception as e:
-        exception_class = type(e)
+    except AssertionError as e:
         frames = traceback_frames()
         message = str(e)
+        if not message:
+            filename, lineno, name, text = frames[-1]
+            print(name)
+            if text.startswith('assert '):
+                message = introspect_assert(test, args, filename, lineno)
+        return 'E', type(e).__name__, message, add_args(frames, args)
+    except Exception as e:
+        frames = traceback_frames()
+        return 'E', type(e).__name__, str(e), add_args(frames, args)
     else:
         return '.'
-
-    if message == '' and issubclass(exception_class, AssertionError):
-        filename, lineno, name, text = frames[-1]
-        if text.startswith('assert '):
-            better_message = introspect_assert(test, args, filename, lineno)
-            if better_message is not None:
-                message = better_message
-
-    return 'E', exception_class.__name__, message, add_args(frames, args)
 
 def traceback_frames():
     """Return all traceback frames for code outside of this file."""

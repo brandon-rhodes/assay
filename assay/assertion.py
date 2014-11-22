@@ -26,27 +26,6 @@ def introspect_assert(test, args, filename, lineno):
 
     c = test.__code__ if _python3 else test.func_code
 
-    # print('---')
-    # while tb.tb_next:
-    #     tb = tb.tb_next
-
-    # debug = Debugger()
-    # debug.set_break(filename, lineno)
-    # try:
-    #     debug.runcall(test, *args)
-    # except AssertionError:
-    #     print(debug.count)
-    # except Exception:
-    #     return ('Assay can not introspect this assertion - 
-    # else:
-    # print(vars(debug).keys())
-
-    # print(debugger.locals)
-    # print(repr(debugger.code.co_code))
-    # import dis
-    # dis.dis(debugger.code)
-    # print(debugger.lasti)
-
     if _python3:
         bytecode = list(c.co_code)
     else:
@@ -55,7 +34,7 @@ def introspect_assert(test, args, filename, lineno):
     try:
         i = c.co_names.index('AssertionError')
     except ValueError:
-        return None
+        return ''
     assert_msb, assert_lsb = divmod(i, 256)
 
     consts = c.co_consts
@@ -105,9 +84,9 @@ def introspect_assert(test, args, filename, lineno):
     except AssayCompareError as e:
         return 'it is false that {!r} {} {!r}'.format(e.a, e.symbol, e.b)
     except Exception:
-        return None
+        return ''
     else:
-        return None
+        return ''
 
 def install_handler(bytecode, i, cmp_base, exception_lsb, exception_msb):
     """The index `i` should point at the COMPARE_OP of an assert."""
