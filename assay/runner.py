@@ -130,18 +130,20 @@ def run_test_with_arguments(test, args):
     try:
         test(*args)
     except AssertionError as e:
+        type_name = type(e).__name__
         frames = traceback_frames()
         message = str(e)
-        if not message:
-            filename, lineno, name, text = frames[-1]
-            if text.startswith('assert') and text[6].isspace():
-                message = introspect_assert(test, args, filename, lineno)
-        return 'E', type(e).__name__, message, add_args(frames, args)
     except Exception as e:
         frames = traceback_frames()
         return 'E', type(e).__name__, str(e), add_args(frames, args)
     else:
         return '.'
+
+    if not message:
+        filename, lineno, name, text = frames[-1]
+        if text.startswith('assert') and not text[6].isalnum():
+            message = introspect_assert(test, args, filename, lineno)
+    return 'E', type_name, message, add_args(frames, args)
 
 def traceback_frames():
     """Return all traceback frames for code outside of this file."""
