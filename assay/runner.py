@@ -8,7 +8,7 @@ import os
 import sys
 import traceback
 from types import FunctionType
-from .assertion import introspect_assert
+from .assertion import fast_introspect
 from .importation import import_module
 
 class Failure(Exception):
@@ -133,6 +133,7 @@ def run_test_with_arguments(test, args):
         type_name = type(e).__name__
         frames = traceback_frames()
         message = str(e)
+        code = sys.exc_info()[2].tb_next.tb_frame.f_code
     except Exception as e:
         frames = traceback_frames()
         return 'E', type(e).__name__, str(e), add_args(frames, args)
@@ -142,7 +143,10 @@ def run_test_with_arguments(test, args):
     if not message:
         filename, lineno, name, text = frames[-1]
         if text.startswith('assert') and not text[6].isalnum():
-            message = introspect_assert(test, args, filename, lineno)
+            message = fast_introspect(test, args, code, filename, lineno)
+            if not message:
+                pass  # TODO: slower introspection
+
     return 'E', type_name, message, add_args(frames, args)
 
 def traceback_frames():

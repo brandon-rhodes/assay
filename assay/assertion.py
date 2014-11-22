@@ -21,10 +21,17 @@ class AssayCompareError(Exception):
 
 additional_consts = (AssayCompareError,) + dis.cmp_op
 
-def introspect_assert(test, args, filename, lineno):
+def fast_introspect(test, args, code, filename, lineno):
     """Re-run test() after rewriting its asserts for introspection."""
 
+    if hasattr(test, 'assay_rewritten'):
+        return ''
+
     c = test.__code__ if _python3 else test.func_code
+
+    this_is_the_right_function = c is code
+    if not this_is_the_right_function:
+        return ''
 
     if _python3:
         bytecode = list(c.co_code)
@@ -78,6 +85,8 @@ def introspect_assert(test, args, filename, lineno):
         test.__code__ = new_func_code
     else:
         test.func_code = new_func_code
+
+    test.assay_rewritten = True
 
     try:
         test(*args)
