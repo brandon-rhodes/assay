@@ -19,10 +19,12 @@ _additional_consts = (_format, AssertionError) + dis.cmp_op
 def fast_introspect(test, args, code, filename, lineno):
     """Re-run test() after rewriting its asserts for introspection."""
 
-    if hasattr(test, 'assay_rewritten'):
+    function = test
+
+    if hasattr(function, 'assay_rewritten'):
         return ''
 
-    c = test.__code__ if _python3 else test.func_code
+    c = function.__code__ if _python3 else function.func_code
 
     this_is_the_right_function = c is code
     if not this_is_the_right_function:
@@ -80,11 +82,11 @@ def fast_introspect(test, args, code, filename, lineno):
         c.co_freevars, c.co_cellvars))
 
     if _python3:
-        test.__code__ = new_func_code
+        function.__code__ = new_func_code
     else:
-        test.func_code = new_func_code
+        function.func_code = new_func_code
 
-    test.assay_rewritten = True
+    function.assay_rewritten = True
 
     try:
         test(*args)
@@ -92,10 +94,11 @@ def fast_introspect(test, args, code, filename, lineno):
         return str(e)
     except Exception as e:
         type_name, message = type(e).__name__, str(e)
-        return ('Assay re-ran your test to examine its failed assert but the'
+        return ('Assay re-ran your test to examine its failed assert, but the'
                 ' second time it raised {}: {}'.format(type_name, message))
     else:
-        return ''
+        return ('Assay re-ran your test to examine its failed assert, but it'
+                ' passed the second time')
 
 def install_handler(bytecode, i, cmp_base, format_lsb, format_msb,
                     exception_lsb, exception_msb):

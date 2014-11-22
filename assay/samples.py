@@ -1,5 +1,7 @@
 """Sample tests for the Assay test suite to exercise."""
 
+flags = set()
+
 def test_passing():
     pass
 
@@ -18,13 +20,16 @@ def test_assert2():
 def test_assert_tab():
     assert	1+1 == 3
 
-flag = False
+def test_assert_then_pass():
+    if 'a' not in flags:
+        flags.add('a')
+        assert 1+1 == 3
+
 def test_assert_then_die():
-    global flag
-    if flag:
-        raise ValueError('bad value')
-    flag = True
-    assert 1+1 == 3
+    if 'b' not in flags:
+        flags.add('b')
+        assert 1+1 == 3
+    raise ValueError('bad value')
 
 def test_exc():
     raise OSError('xyz')

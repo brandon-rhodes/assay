@@ -137,7 +137,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
-        self.assertEqual(len(value), 19)
+        self.assertEqual(len(value), 20)
 
     def test_runner_on_syntax_error(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
@@ -244,13 +244,23 @@ class ErrorMessageTests(unittest.TestCase):
                 ]),
             ])
 
+    def test_assert_that_raises_no_exception_the_second_time(self):
+        result = self.execute(samples.test_assert_then_pass)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', 'Assay re-ran your test to examine its'
+             ' failed assert, but it passed the second time', [
+                ('assay/samples.py', 3, 'test_assert_then_pass',
+                 'assert 1+1 == 3')
+                ]),
+            ])
+
     def test_assert_that_raises_a_different_exception_the_second_time(self):
         result = self.execute(samples.test_assert_then_die)
         self.assertEqual(result, [
             ('E', 'AssertionError', 'Assay re-ran your test to examine its'
-             ' failed assert but the second time it raised'
+             ' failed assert, but the second time it raised'
              ' ValueError: bad value', [
-                ('assay/samples.py', 5, 'test_assert_then_die',
+                ('assay/samples.py', 3, 'test_assert_then_die',
                  'assert 1+1 == 3')
                 ]),
             ])
