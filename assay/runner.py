@@ -7,6 +7,7 @@ import linecache
 import os
 import sys
 import traceback
+from types import FunctionType
 from .assertion import introspect_assert
 from .importation import import_module
 
@@ -53,7 +54,7 @@ def run_tests_of(module_name):
         return
 
     tests = sorted((k, v) for k, v in module.__dict__.items()
-                   if k.startswith('test_')
+                   if k.startswith('test_') and isinstance(v, FunctionType)
                    and getattr(v, '__module__', '') == module_name)
 
     for name, test in tests:
@@ -77,6 +78,7 @@ def run_test(module, test):
         filename = relativize(code.co_filename)
         firstlineno = code.co_firstlineno
         if len(frames):
+            # TODO: what if the fixture called a subroutine?
             line = 'Call to fixture {}()'.format(frames[0][2])
         else:
             line = linecache.getline(filename, firstlineno).strip()
@@ -132,7 +134,6 @@ def run_test_with_arguments(test, args):
         message = str(e)
         if not message:
             filename, lineno, name, text = frames[-1]
-            print(name)
             if text.startswith('assert '):
                 message = introspect_assert(test, args, filename, lineno)
         return 'E', type(e).__name__, message, add_args(frames, args)
