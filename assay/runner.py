@@ -131,9 +131,22 @@ def run_test_with_arguments(test, args):
         test(*args)
     except AssertionError as e:
         type_name = type(e).__name__
-        frames = traceback_frames()
         message = str(e)
-        code = sys.exc_info()[2].tb_next.tb_frame.f_code
+        frames = traceback_frames()
+        filename, lineno, name, text = frames[-1]
+        tb = sys.exc_info()[2]
+        while tb.tb_next:
+            tb = tb.tb_next
+        tb_frame = tb.tb_frame
+        failed_code = tb_frame.f_code
+        test_code = test.__code__ if _python3 else test.func_code
+        if failed_code is test_code:
+            function = test
+        else:
+            function = (tb_frame.f_locals.get(name) or
+                        tb_frame.f_globals.get(name))
+        del tb
+        del tb_frame
     except Exception as e:
         frames = traceback_frames()
         return 'E', type(e).__name__, str(e), add_args(frames, args)
@@ -141,9 +154,8 @@ def run_test_with_arguments(test, args):
         return '.'
 
     if not message:
-        filename, lineno, name, text = frames[-1]
         if text.startswith('assert') and not text[6].isalnum():
-            message = fast_introspect(test, args, code, filename, lineno)
+            message = fast_introspect(test, args, test_code, filename, lineno)
             if not message:
                 pass  # TODO: slower introspection
 
