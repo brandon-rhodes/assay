@@ -8,7 +8,7 @@ import os
 import sys
 import traceback
 from types import FunctionType
-from .assertion import fast_introspect
+from .assertion import rewrite_asserts_in
 from .importation import import_module
 
 class Failure(Exception):
@@ -21,6 +21,9 @@ if _python3:
     from io import StringIO
 else:
     from StringIO import StringIO
+
+def _get_code(function):
+    return function.__code__ if _python3 else function.func_code
 
 def capture_stdout_stderr(generator, *args):
     """Call a generator, supplementing its tuples with stdout, stderr data."""
@@ -63,7 +66,7 @@ def run_tests_of(module_name):
 
 def run_test(module, test):
     """Run a test, detecting whether it needs fixtures and providing them."""
-    code = test.__code__ if _python3 else test.func_code
+    code = _get_code(test)
     if not code.co_argcount:
         yield run_test_with_arguments(test, ())
         return
@@ -139,12 +142,17 @@ def run_test_with_arguments(test, args):
             tb = tb.tb_next
         tb_frame = tb.tb_frame
         failed_code = tb_frame.f_code
-        test_code = test.__code__ if _python3 else test.func_code
+        test_code = _get_code(test)
         if failed_code is test_code:
             function = test
         else:
-            function = (tb_frame.f_locals.get(name) or
-                        tb_frame.f_globals.get(name))
+            maybe_function = (tb_frame.f_locals.get(name) or
+                              tb_frame.f_globals.get(name))
+            if (isinstance(maybe_function, FunctionType)
+                  and _get_code(maybe_function) is failed_code):
+                function = maybe_function
+            else:
+                function = None
         del tb
         del tb_frame
     except Exception as e:
@@ -155,7 +163,21 @@ def run_test_with_arguments(test, args):
 
     if not message:
         if text.startswith('assert') and not text[6].isalnum():
-            message = fast_introspect(test, args, test_code, filename, lineno)
+            if function and not hasattr(function, 'assay_rewritten'):
+                rewrite_asserts_in(function)
+                function.assay_rewritten = True
+                try:
+                    test(*args)
+                except AssertionError as e:
+                    message = str(e)
+                except Exception as e:
+                    type_name2, message2 = type(e).__name__, str(e)
+                    message = ('Assay re-ran your test to examine its failed assert, but the'
+                               ' second time it raised {}: {}'.format(type_name2, message2))
+                else:
+                    message = ('Assay re-ran your test to examine its failed assert, but it'
+                               ' passed the second time')
+
             if not message:
                 pass  # TODO: slower introspection
 

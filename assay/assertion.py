@@ -16,19 +16,10 @@ for i, symbol in enumerate(dis.opname):
 _format = 'it is false that {0!r} {2} {1!r}'.format
 _additional_consts = (_format, AssertionError) + dis.cmp_op
 
-def fast_introspect(test, args, code, filename, lineno):
+def rewrite_asserts_in(function):
     """Re-run test() after rewriting its asserts for introspection."""
 
-    function = test
-
-    if hasattr(function, 'assay_rewritten'):
-        return ''
-
     c = function.__code__ if _python3 else function.func_code
-
-    this_is_the_right_function = c is code
-    if not this_is_the_right_function:
-        return ''
 
     if _python3:
         bytecode = list(c.co_code)
@@ -85,20 +76,6 @@ def fast_introspect(test, args, code, filename, lineno):
         function.__code__ = new_func_code
     else:
         function.func_code = new_func_code
-
-    function.assay_rewritten = True
-
-    try:
-        test(*args)
-    except AssertionError as e:
-        return str(e)
-    except Exception as e:
-        type_name, message = type(e).__name__, str(e)
-        return ('Assay re-ran your test to examine its failed assert, but the'
-                ' second time it raised {}: {}'.format(type_name, message))
-    else:
-        return ('Assay re-ran your test to examine its failed assert, but it'
-                ' passed the second time')
 
 def install_handler(bytecode, i, cmp_base, format_lsb, format_msb,
                     exception_lsb, exception_msb):

@@ -230,7 +230,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_equality_assertion_in_subroutine(self):
         result = self.execute(samples.test_assert2)
         self.assertEqual(result, [
-            ('E', 'AssertionError', '', [ #'it is false that 2 == 4', [
+            ('E', 'AssertionError', 'it is false that 4 == 6', [
                 ('assay/samples.py', 1, 'test_assert2', 'sub_assert2()'),
                 ('assay/samples.py', -2, 'sub_assert2', 'assert 2+2 == 3+3')
                 ]),
