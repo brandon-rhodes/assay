@@ -7,22 +7,28 @@
 
 """
 import re
-import sys
-from unittest.case import _AssertRaisesContext, TestCase
 
-_python3 = sys.version_info >= (3,)
-_throwaway_test_case = TestCase('setUp')
-
-class raises(_AssertRaisesContext):
+class assert_raises(object):
     """Context manager that verifies the exception its code block raises."""
 
-    def __init__(self, expected, regex=None):
-        f = _AssertRaisesContext.__init__
-        if _python3:
-            f(self, expected, _throwaway_test_case, expected_regex=regex)
-        else:
-            if isinstance(regex, str):
-                regex = re.compile(regex)
-            f(self, expected, _throwaway_test_case, expected_regexp=regex)
+    def __init__(self, expected_type, pattern=None):
+        self.expected_type = expected_type
+        self.pattern = pattern
 
-__all__ = ['raises']
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception, tb):
+        if exception_type is None:
+            complaint = '{0} not raised'.format(self.expected_type.__name__)
+            raise AssertionError(complaint)
+        if not issubclass(exception_type, self.expected_type):
+            return False
+        self.exception = exception
+        pattern = self.pattern
+        if (pattern is not None) and not re.search(pattern, str(exception)):
+            complaint = 'cannot find pattern {0!r} in {1!r}'
+            raise AssertionError(complaint.format(pattern, str(exception)))
+        return True
+
+__all__ = ['assert_raises']

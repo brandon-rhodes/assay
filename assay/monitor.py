@@ -89,7 +89,8 @@ def main_loop(arguments, is_batch):
                     write('\n\nFile modified: {}\n\n'.format(paths[0]))
 
                 paths_under_test = set()
-                runner = run_all_tests(arguments, workers, paths_under_test)
+                runner = run_all_tests(arguments, workers, paths_under_test,
+                                       is_batch)
                 next(runner)
 
             # import_order = improve_order(import_order, dangers)

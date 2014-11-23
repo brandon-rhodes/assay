@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import assay
 import inspect
 import linecache
 import os
@@ -15,6 +16,7 @@ class Failure(Exception):
 
 _python3 = (sys.version_info.major >= 3)
 _no_such_fixture = object()
+_is_noisy_filename = (__file__, assay.__file__).__contains__
 
 if _python3:
     from io import StringIO
@@ -177,7 +179,7 @@ def traceback_frames(return_top_frame=False):
         frame = tb.tb_frame
         code = frame.f_code
         filename = code.co_filename
-        if filename != __file__ and '/unittest/' not in filename:
+        if not _is_noisy_filename(filename):
             lineno = frame.f_lineno
             line = linecache.getline(filename, lineno, frame.f_globals)
             line = line.strip() if line else None

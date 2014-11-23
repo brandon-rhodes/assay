@@ -1,6 +1,6 @@
 """Sample tests for the Assay test suite to exercise."""
 
-from assay import raises
+from assay import assert_raises
 
 flags = set()
 
@@ -68,17 +68,17 @@ def test_syntax_error():
     eval('1+2@3')
 
 def test_raises1():
-    with raises(ValueError):
+    with assert_raises(ValueError):
         raise ValueError('irrelevant message')
 
 def test_raises2():
-    with raises(ValueError, 'correct message'):
+    with assert_raises(ValueError, 'correct message'):
         raise ValueError('correct message')
 
 def test_raises3():
-    with raises(ValueError, 'correct message but wrong exception'):
+    with assert_raises(ValueError, 'correct message but wrong exception'):
         raise KeyError('correct message but wrong exception')
 
 def test_raises4():
-    with raises(ValueError, 'one message'):
+    with assert_raises(ValueError, 'one message'):
         raise ValueError('another message')
