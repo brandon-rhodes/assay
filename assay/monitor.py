@@ -31,7 +31,7 @@ def write(string):
     """Send `string` immediately to standard output, without buffering."""
     os.write(stdout_fd, string.encode('ascii'))
 
-def main_loop(arguments, is_interactive):
+def main_loop(arguments, is_batch):
     """Run and report on tests while also letting the user type commands."""
 
     main_process_paths = set(path for name, path in list_module_paths())
@@ -41,7 +41,7 @@ def main_loop(arguments, is_interactive):
 
     poller = unix.EPoll()
     poller.register(file_watcher)
-    if is_interactive:
+    if not is_batch:
         poller.register(sys.stdin)
 
     runner = None  # so our 'finally' clause does not explode
@@ -53,7 +53,7 @@ def main_loop(arguments, is_interactive):
             poller.register(worker)
 
         paths_under_test = set()
-        runner = run_all_tests(arguments, workers, paths_under_test)
+        runner = run_all_tests(arguments, workers, paths_under_test, is_batch)
         next(runner)
 
         for source, flags in poller.events():
@@ -62,8 +62,6 @@ def main_loop(arguments, is_interactive):
                 try:
                     runner.send(source)
                 except StopIteration:
-                    if not is_interactive:
-                        break
                     file_watcher.add_paths(paths_under_test)
                     write('Watching {} paths...'.format(len(paths_under_test)))
 
@@ -102,7 +100,7 @@ def main_loop(arguments, is_interactive):
         for worker in workers:
             worker.close()
 
-def run_all_tests(arguments, workers, paths_under_test):
+def run_all_tests(arguments, workers, paths_under_test, is_batch):
     worker = workers[0]
     running_workers = set()
     names = []
@@ -154,6 +152,9 @@ def run_all_tests(arguments, workers, paths_under_test):
     else:
         tally = green('All {} tests passed'.format(successes))
     write('\n{} in {:.2f} seconds\n'.format(tally, dt))
+
+    if is_batch:
+        exit(1 if failures else 0)
 
 def install_import_path(path):
     sys.modules.insert(0, path)

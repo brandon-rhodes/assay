@@ -13,11 +13,13 @@ def main():
     parser = argparse.ArgumentParser(prog='assay')
     parser.description = 'Fast testing framework'
     parser.add_argument('name', nargs='+',
-                        help='directory, package, or module to test')
+        help='directory, package, or module to test')
+    parser.add_argument('--batch', action='store_true',
+        help='run tests once, then exit with success or failure')
     args = parser.parse_args()
     try:
-        with unix.configure_tty() as is_interactive:
-            monitor.main_loop(args.name, is_interactive)
+        with unix.configure_tty():
+            monitor.main_loop(args.name, args.batch)
     except monitor.Restart:
         print()
         print(' Restart '.center(79, '='))
