@@ -15,13 +15,17 @@ from .worker import Worker
 class Restart(BaseException):
     """Tell ``main()`` that we need to restart."""
 
+python3 = sys.version_info >= (3,)
 stdin_fd = sys.stdin.fileno()
 stdout_fd = sys.stdout.fileno()
-ctrl_d = '\x04'
+ctrl_d = b'\x04'
 
 def read_keystrokes():
     """Read user keystrokes from standard input."""
-    return os.read(stdin_fd, 1024)
+    keystrokes = os.read(stdin_fd, 1024)
+    if python3:
+        keystrokes = [keystrokes[i:i+1] for i in range(len(keystrokes))]
+    return keystrokes
 
 def write(string):
     """Send `string` immediately to standard output, without buffering."""
@@ -66,9 +70,9 @@ def main_loop(arguments, is_interactive):
             elif source is sys.stdin:
                 for keystroke in read_keystrokes():
                     print('got {}'.format(keystroke))
-                    if keystroke == 'q' or keystroke == ctrl_d:
-                        sys.exit()
-                    elif keystroke == 'r':
+                    if keystroke == b'q' or keystroke == ctrl_d:
+                        sys.exit(0)
+                    elif keystroke == b'r':
                         raise Restart()
 
             elif source is file_watcher:
