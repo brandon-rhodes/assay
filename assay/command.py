@@ -18,8 +18,8 @@ def main():
         help='run tests once, then exit with success or failure')
     args = parser.parse_args()
     try:
-        with unix.configure_tty():
-            monitor.main_loop(args.name, args.batch)
+        with unix.configure_tty() as isatty:
+            monitor.main_loop(args.name, args.batch or not isatty)
     except monitor.Restart:
         print()
         print(' Restart '.center(79, '='))

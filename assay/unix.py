@@ -19,15 +19,15 @@ def configure_tty():
     standard input will immediately see each keystroke the user types.
 
     """
-    is_interactive = sys.stdin.isatty() and sys.stdout.isatty()
-    if is_interactive:
+    isatty = sys.stdin.isatty() and sys.stdout.isatty()
+    if isatty:
         fd = sys.stdin.fileno()
         original_mode = termios.tcgetattr(fd)
         tty.setcbreak(fd)
     try:
-        yield is_interactive
+        yield isatty
     finally:
-        if is_interactive:
+        if isatty:
             termios.tcsetattr(fd, termios.TCSAFLUSH, original_mode)
 
 def close_on_exec(fd):
