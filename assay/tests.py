@@ -137,7 +137,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
-        self.assertEqual(len(value), 20)
+        self.assertEqual(len(value), 24)
 
     def test_runner_on_syntax_error(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
@@ -339,6 +339,37 @@ class ErrorMessageTests(unittest.TestCase):
                 ('assay/samples.py', 1, 'test_syntax_error', "eval('1+2@3')"),
                 ('<string>', 1, None, '1+2@3\n   ^'),
                 ]),
+            ])
+
+    def test_raises_with_correct_exception(self):
+        result = self.execute(samples.test_raises1)
+        self.assertEqual(result, [
+            '.',
+            ])
+
+    def test_raises_with_correct_exception_and_message(self):
+        result = self.execute(samples.test_raises2)
+        self.assertEqual(result, [
+            '.',
+            ])
+
+    def test_raises_with_wrong_exception(self):
+        result = self.execute(samples.test_raises3)
+        self.assertEqual(result, [
+            ('E', 'KeyError', "'correct message but wrong exception'", [
+                ('assay/samples.py', 2, 'test_raises3',
+                 "raise KeyError('correct message but wrong exception')"),
+                ]),
+            ])
+
+    def test_raises_with_wrong_message(self):
+        result = self.execute(samples.test_raises4)
+        self.assertEqual(result, [
+            ('E', 'AssertionError',
+             '"one message" does not match "another message"', [
+                 ('assay/samples.py', 2, 'test_raises4',
+                  "raise ValueError('another message')"),
+                 ]),
             ])
 
 

@@ -23,7 +23,7 @@ class op(object):
 for i, symbol in enumerate(dis.opname):
     setattr(op, symbol.lower(), i)
 
-def _format(value1, value2, operator):
+def format_failed_assertion(value1, value2, operator):
     """Attractively format a failure of value1 <operator> value2."""
     method = _assert_methods.get(operator)
     if method is None:
@@ -33,7 +33,7 @@ def _format(value1, value2, operator):
     except AssertionError as e:
         return str(e)
 
-_additional_consts = (_format, AssertionError) + dis.cmp_op
+_additional_consts = (format_failed_assertion, AssertionError) + dis.cmp_op
 
 def get_code(function):
     return function.__code__ if _python3 else function.func_code
