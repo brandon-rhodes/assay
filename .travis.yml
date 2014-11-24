@@ -10,4 +10,5 @@ python:
   - "3.4"
 
 script:
+  - "pip install unittest2"
   - "python -m assay.tests"
