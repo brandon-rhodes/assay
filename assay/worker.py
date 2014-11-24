@@ -5,7 +5,7 @@ import sys
 from . import unix
 from types import GeneratorType
 
-_python3 = (sys.version_info.major >= 3)
+_python3 = sys.version_info >= (3,)
 
 if _python3:
     import pickle

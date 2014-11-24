@@ -54,7 +54,7 @@ class Filesystem(object):
         self.fd = _libc.inotify_init()
         if self.fd == -1:
             message = strerror(ctypes.get_errno())
-            raise OSError('inotify_init() error: {}'.format(message))
+            raise OSError('inotify_init() error: {0}'.format(message))
         self.descriptors = {}
         self._isdir_cache = _isdir_dict()
         self.isdir = self._isdir_cache.__getitem__

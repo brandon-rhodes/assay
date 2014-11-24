@@ -63,11 +63,11 @@ def main_loop(arguments, is_batch):
                     runner.send(source)
                 except StopIteration:
                     file_watcher.add_paths(paths_under_test)
-                    write('Watching {} paths...'.format(len(paths_under_test)))
+                    write('Watching {0} paths...'.format(len(paths_under_test)))
 
             elif source is sys.stdin:
                 for keystroke in read_keystrokes():
-                    print('got {}'.format(keystroke))
+                    print('got {0}'.format(keystroke))
                     if keystroke == b'q' or keystroke == ctrl_d:
                         sys.exit(0)
                     elif keystroke == b'r':
@@ -80,13 +80,13 @@ def main_loop(arguments, is_batch):
                 main_process_changes = main_process_paths.intersection(paths)
                 if main_process_changes:
                     example_path = main_process_changes.pop()
-                    write('\nAssay has been modified: {}'.format(example_path))
+                    write('\nAssay has been modified: {0}'.format(example_path))
                     raise Restart()
                 runner.close()
                 write(repr(paths))
 
                 if paths:
-                    write('\n\nFile modified: {}\n\n'.format(paths[0]))
+                    write('\n\nFile modified: {0}\n\n'.format(paths[0]))
 
                 paths_under_test = set()
                 runner = run_all_tests(arguments, workers, paths_under_test,
@@ -148,11 +148,11 @@ def run_all_tests(arguments, workers, paths_under_test, is_batch):
 
     dt = time() - t0
     if failures:
-        tally = red('{} of {} tests failed'.format(
+        tally = red('{0} of {1} tests failed'.format(
             failures, successes + failures))
     else:
-        tally = green('All {} tests passed'.format(successes))
-    write('\n{} in {:.2f} seconds\n'.format(tally, dt))
+        tally = green('All {0} tests passed'.format(successes))
+    write('\n{0} in {1:.2f} seconds\n'.format(tally, dt))
 
     if is_batch:
         exit(1 if failures else 0)
@@ -178,12 +178,12 @@ def pretty_print_exception(character, name, message, frames, out='', err=''):
         print(plain_banner)
     for tup in frames:
         filename, line_number, function_name, text = tup
-        a = '  {} line {} in'.format(filename, line_number)
-        b = '{}'.format(function_name)
-        f = '{}\n  {}' if (len(a) + len(b) > 78) else '{} {}'
+        a = '  {0} line {1} in'.format(filename, line_number)
+        b = '{0}'.format(function_name)
+        f = '{0}\n  {1}' if (len(a) + len(b) > 78) else '{0} {1}'
         print(f.format(a, b))
         print(blue('    ' + text.replace('\n', '\n    ')))
-    line = '{}: {}'.format(name, message) if message else name
+    line = '{0}: {1}'.format(name, message) if message else name
     print(red(line))
     print()
 

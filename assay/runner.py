@@ -14,7 +14,7 @@ from .importation import import_module
 class Failure(Exception):
     """Test failure encountered during importation or setup."""
 
-_python3 = (sys.version_info.major >= 3)
+_python3 = sys.version_info >= (3,)
 _no_such_fixture = object()
 _is_noisy_filename = (__file__, assay.__file__).__contains__
 
@@ -80,7 +80,7 @@ def run_test(module, test):
         firstlineno = code.co_firstlineno
         if len(frames):
             # TODO: what if the fixture called a subroutine?
-            line = 'Call to fixture {}()'.format(frames[0][2])
+            line = 'Call to fixture {0}()'.format(frames[0][2])
         else:
             line = linecache.getline(filename, firstlineno).strip()
         frames.insert(0, (filename, firstlineno, test.__name__, line))
@@ -90,7 +90,7 @@ def find_fixture(module, name):
     """Try to resolve a fixture, given its name and the test module."""
     fixture = getattr(module, name, _no_such_fixture)
     if fixture is _no_such_fixture:
-        raise Failure('no such fixture {!r}'.format(name))
+        raise Failure('no such fixture {0!r}'.format(name))
     return fixture
 
 def generate_arguments_from_fixtures(names, fixtures):
@@ -124,7 +124,7 @@ def iterate_over_fixture(name, fixture):
     try:
         return iter(fixture)
     except Exception:
-        raise Failure('fixture {!r} is not iterable'.format(name))
+        raise Failure('fixture {0!r} is not iterable'.format(name))
 
 def run_test_with_arguments(test, args):
     """Return the result of invoking a test with the given arguments."""
@@ -155,7 +155,7 @@ def run_test_with_arguments(test, args):
                 except Exception as e:
                     type_name2, message2 = type(e).__name__, str(e)
                     message = ('Assay re-ran your test to examine its failed assert, but the'
-                               ' second time it raised {}: {}'.format(type_name2, message2))
+                               ' second time it raised {0}: {1}'.format(type_name2, message2))
                 else:
                     message = ('Assay re-ran your test to examine its failed assert, but it'
                                ' passed the second time')
@@ -186,7 +186,7 @@ def traceback_frames(return_top_frame=False):
             tuples.append((relativize(filename), lineno, code.co_name, line))
         tb = tb.tb_next
     if isinstance(e, SyntaxError):
-        line = '{}\n{}^'.format(e.text.rstrip(), ' ' * (e.offset - 1))
+        line = '{0}\n{1}^'.format(e.text.rstrip(), ' ' * (e.offset - 1))
         tuples.append((relativize(e.filename), e.lineno, None, line))
     return (tuples, frame) if return_top_frame else tuples
 
@@ -200,6 +200,6 @@ def add_args(frames, args):
     if args:
         path, lineno, name, line = frames[-1]
         argstr = repr(args)[1:-1].rstrip(',')
-        name = '{}({})'.format(name, argstr)
+        name = '{0}({1})'.format(name, argstr)
         frames[-1] = (path, lineno, name, line)
     return frames

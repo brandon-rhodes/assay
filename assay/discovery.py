@@ -3,7 +3,6 @@
 import os
 import re
 import sys
-from importlib import import_module
 from keyword import iskeyword
 from .importation import get_directory_of, import_modules, list_module_paths
 
@@ -35,7 +34,7 @@ def interpret_argument(worker, name):
     if os.path.isfile(name):
         base, extension = os.path.splitext(name)
         if extension != '.py':
-            print('Error - test file lacks .py extension: {}'.format(name))
+            print('Error - test file lacks .py extension: {0}'.format(name))
             return
         directory, name = os.path.split(base)
         return _discover_enclosing_packages(directory, [name])
@@ -46,7 +45,7 @@ def interpret_argument(worker, name):
     if name in module_paths:
         return None, name
 
-    print('Error - can neither open nor import: {}'.format(name))
+    print('Error - can neither open nor import: {0}'.format(name))
 
 def search_argument(import_directory, import_name):
     """Given a tuple returned by `interpret_argument()`, find tests."""
@@ -86,7 +85,7 @@ def insert_path_and_search_package_or_module(path, name):
     return search_package_or_module(name)
 
 def search_package_or_module(name):
-    import_module
+    pass #import_module
 
 def _discover_enclosing_packages(directory, names):
     """Find the top-level directory surrounding a package or sub-package."""
@@ -100,7 +99,7 @@ def _discover_enclosing_packages(directory, names):
             return
         if not is_identifier(package_name):
             print('Error - directory contains an __init__.py but its'
-                  ' name is not an identifier: {}'.format(package_name))
+                  ' name is not an identifier: {0}'.format(package_name))
             return
         names.append(package_name)
     if not was_absolute:

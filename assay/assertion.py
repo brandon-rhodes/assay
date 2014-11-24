@@ -4,10 +4,11 @@ import bdb
 import dis
 import sys
 import types
-import unittest
 from types import FunctionType
+from .compatibility import unittest
 
-_python3 = (sys.version_info.major >= 3)
+_python3 = sys.version_info >= (3,)
+_python27 = sys.version_info >= (2, 7)
 _case = unittest.TestCase('setUp')
 _assert_methods = {
     '==': _case.assertEqual,
@@ -23,13 +24,13 @@ class op(object):
 for i, symbol in enumerate(dis.opname):
     setattr(op, symbol.lower(), i)
 
-def format_failed_assertion(value1, value2, operator):
+def format_failed_assertion(a, b, operator):
     """Attractively format a failure of value1 <operator> value2."""
     method = _assert_methods.get(operator)
     if method is None:
-        return '{!r}\n{:>15} {!r}'.format(value1, 'is not ' + operator, value2)
+        return '{0!r}\n{1:>15} {2!r}'.format(a, 'is not ' + operator, b)
     try:
-        method(value1, value2)
+        method(a, b)
     except AssertionError as e:
         return str(e)
 
@@ -50,6 +51,9 @@ def search_for_function(code, candidate, frame, name):
 
 def rewrite_asserts_in(function):
     """Re-run test() after rewriting its asserts for introspection."""
+
+    if not _python27:
+        return ''
 
     c = function.__code__ if _python3 else function.func_code
 

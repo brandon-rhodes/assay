@@ -5,19 +5,18 @@ To run these tests, simply invoke::
     $ python -m assay.tests
 
 """
-import importlib
 import os
 import shutil
 import sys
 import tempfile
-import unittest
 from contextlib import contextmanager
 from . import samples
+from .compatibility import unittest
 from .discovery import interpret_argument
 from .importation import improve_order
 from .runner import run_tests_of, run_test
 
-_python3 = (sys.version_info.major >= 3)
+_python3 = sys.version_info >= (3,)
 
 # Tests.
 
@@ -147,6 +146,7 @@ class RunnerTests(unittest.TestCase):
             module_name = basename[:-3]
             sys.path.insert(0, os.path.dirname(f.name))
             if _python3:
+                import importlib
                 importlib.invalidate_caches()
             try:
                 value = list(run_tests_of(module_name))
@@ -154,21 +154,22 @@ class RunnerTests(unittest.TestCase):
                 del sys.path[0]
         self.assertEqual(value, [
             ('F', 'SyntaxError',
-             'invalid syntax ({}, line 3)'.format(basename),
+             'invalid syntax ({0}, line 3)'.format(basename),
              [(f.name, 3, None, 'if while\n       ^')]),
             ])
 
     def test_runner_on_module_that_throws_exception_during_import(self):
-        with tempfile.NamedTemporaryFile(suffix='.py') as f1, \
-             tempfile.NamedTemporaryFile(suffix='.py') as f2:
+        with tempfile.NamedTemporaryFile(suffix='.py') as f1:
+          with tempfile.NamedTemporaryFile(suffix='.py') as f2:
             module_name1 = os.path.basename(f1.name)[:-3]
             module_name2 = os.path.basename(f2.name)[:-3]
             f1.write(b'\n\n\nimport ' + module_name2.encode('ascii') + b'\n')
             f1.flush()
-            f2.write(b'\n{}["key"]\n')
+            f2.write(b'\ndict()["key"]\n')
             f2.flush()
             sys.path.insert(0, os.path.dirname(f1.name))
             if _python3:
+                import importlib
                 importlib.invalidate_caches()
             try:
                 value = list(run_tests_of(module_name1))
@@ -176,8 +177,8 @@ class RunnerTests(unittest.TestCase):
                 del sys.path[0]
         self.assertEqual(value, [
             ('F', 'KeyError', "'key'",
-             [(f1.name, 4, '<module>', 'import {}'.format(module_name2)),
-              (f2.name, 2, '<module>', '{}["key"]')]),
+             [(f1.name, 4, '<module>', 'import {0}'.format(module_name2)),
+              (f2.name, 2, '<module>', 'dict()["key"]')]),
             ])
 
 

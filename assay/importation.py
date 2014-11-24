@@ -1,7 +1,12 @@
 """Routines that understand Python importation."""
 
 import sys
-from importlib import import_module
+
+if sys.version_info >= (2, 7):
+    from importlib import import_module
+else:
+    from functools import partial  # to avoid creating a stack frame
+    import_module = partial(__import__, fromlist=['__file__'], level=0)
 
 def get_directory_of(name):
     """Return the base directory of a package, or None for a plain module."""
@@ -65,7 +70,8 @@ def improve_order(import_events):
     that imports them.
 
     """
-    imported_by = {b: a for a, bset in import_events for b in bset if a != b}
+    imported_by = dict((b, a) for a, bset in import_events
+                              for b in bset if a != b)
     already_appended = set()
     new_order = []
 
