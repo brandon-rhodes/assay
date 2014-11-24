@@ -12,4 +12,15 @@ else:
                          ' please install unittest2\n')
         sys.exit(2)
 
+if sys.version_info >= (3,):
+    def get_code(function):
+        return function.__code__
+    def set_code(function, code):
+        function.__code__ = code
+else:
+    def get_code(function):
+        return function.func_code
+    def set_code(function, code):
+        function.func_code = code
+
 __all__ = ['unittest']

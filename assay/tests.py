@@ -11,12 +11,12 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from . import samples
-from .compatibility import unittest
+from .compatibility import get_code, unittest
 from .discovery import interpret_argument
 from .importation import improve_order
 from .runner import run_tests_of, run_test
 
-_python3 = sys.version_info >= (3,)
+_python33 = sys.version_info >= (3, 3)
 
 # Tests.
 
@@ -145,7 +145,7 @@ class RunnerTests(unittest.TestCase):
             basename = os.path.basename(f.name)
             module_name = basename[:-3]
             sys.path.insert(0, os.path.dirname(f.name))
-            if _python3:
+            if _python33:
                 import importlib
                 importlib.invalidate_caches()
             try:
@@ -168,7 +168,7 @@ class RunnerTests(unittest.TestCase):
             f2.write(b'\ndict()["key"]\n')
             f2.flush()
             sys.path.insert(0, os.path.dirname(f1.name))
-            if _python3:
+            if _python33:
                 import importlib
                 importlib.invalidate_caches()
             try:
@@ -194,7 +194,7 @@ class ErrorMessageTests(unittest.TestCase):
         additional line gets adding a line to the top of ``samples.py``.
 
         """
-        code = test.__code__ if _python3 else test.func_code
+        code = get_code(test)
         base = code.co_firstlineno
         result = list(run_test(samples, test))
         for item in result:

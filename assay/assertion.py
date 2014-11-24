@@ -5,7 +5,7 @@ import dis
 import sys
 import types
 from types import FunctionType
-from .compatibility import unittest
+from .compatibility import get_code, set_code, unittest
 
 _python3 = sys.version_info >= (3,)
 _python27 = sys.version_info >= (2, 7)
@@ -36,9 +36,6 @@ def format_failed_assertion(a, b, operator):
 
 _additional_consts = (format_failed_assertion, AssertionError) + dis.cmp_op
 
-def get_code(function):
-    return function.__code__ if _python3 else function.func_code
-
 def search_for_function(code, candidate, frame, name):
     """Find the function whose code object is `code`, else return None."""
     if get_code(candidate) is code:
@@ -55,7 +52,7 @@ def rewrite_asserts_in(function):
     if not _python27:
         return ''
 
-    c = function.__code__ if _python3 else function.func_code
+    c = get_code(function)
 
     if _python3:
         bytecode = list(c.co_code)
@@ -108,10 +105,7 @@ def rewrite_asserts_in(function):
         c.co_varnames, c.co_filename, c.co_name, c.co_firstlineno, c.co_lnotab,
         c.co_freevars, c.co_cellvars))
 
-    if _python3:
-        function.__code__ = new_func_code
-    else:
-        function.func_code = new_func_code
+    set_code(function, new_func_code)
 
 def install_handler(bytecode, i, cmp_base, format_lsb, format_msb,
                     exception_lsb, exception_msb):
