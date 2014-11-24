@@ -2,15 +2,19 @@
 
 import bdb
 import dis
+import operator
+import re
 import sys
 import types
 from types import FunctionType
 from .compatibility import get_code, set_code, unittest
 
+_python26 = sys.version_info < (2, 7)
+_python27 = sys.version_info < (3,)
 _python3 = sys.version_info >= (3,)
-_python27 = sys.version_info >= (2, 7)
 _case = unittest.TestCase('setUp')
-_assert_methods = {
+
+fancy_comparisons = {
     '==': _case.assertEqual,
     'in': _case.assertIn,
     'not in': _case.assertNotIn,
@@ -18,23 +22,117 @@ _assert_methods = {
     'is not': _case.assertIsNot,
     }
 
+plain_comparisons = {
+    '<': operator.__lt__,
+    '<=': operator.__le__,
+    '!=': operator.__ne__,
+    '>': operator.__gt__,
+    '>=': operator.__ge__,
+    'exception match': isinstance,  # no idea whether this is correct
+    'BAD': None,
+    }
+
+def make_comparer(op):
+    if op in fancy_comparisons:
+        return fancy_comparisons[op]
+    def compare(a, b):
+        if not test(a, b):
+            message = '{0!r}\n{1:>15} {2!r}'.format(a, 'is not ' + op, b)
+            raise AssertionError(message)
+    test = plain_comparisons[op]
+    return compare
+
+operator_constants = tuple(make_comparer(op) for op in dis.cmp_op)
+
 class op(object):
     """Op code symbols."""
 
 for i, symbol in enumerate(dis.opname):
     setattr(op, symbol.lower(), i)
 
-def format_failed_assertion(a, b, operator):
-    """Attractively format a failure of value1 <operator> value2."""
-    method = _assert_methods.get(operator)
-    if method is None:
-        return '{0!r}\n{1:>15} {2!r}'.format(a, 'is not ' + operator, b)
-    try:
-        method(a, b)
-    except AssertionError as e:
-        return str(e)
+# How to assemble regular expressions and replacement strings.
 
-_additional_consts = (format_failed_assertion, AssertionError) + dis.cmp_op
+if _python3:
+    def chr(n):
+        return bytes((n,))
+
+def assemble_replacement(things):
+    return b''.join((t if isinstance(t, bytes) else chr(t)) for t in things)
+
+def assemble_pattern(things):
+    return b''.join((t if isinstance(t, bytes) else re.escape(chr(t)))
+                    for t in things)
+
+# How an "assert" statement looks in each version of Python.
+
+if _python26:
+
+    assert_pattern_text = assemble_pattern([
+        op.compare_op, b'(.)', 0,
+        op.jump_if_true, b'..',
+        op.pop_top,
+        op.load_global, b'(..)',
+        op.raise_varargs, 1, 0,
+        op.pop_top,
+        ])
+
+    replacement = assemble_replacement([
+        op.load_const, b'%%',   # stack: ... op1 op2 function
+        op.rot_three,           # stack: ... function op1 op2
+        op.call_function, 2, 0, # stack: ... return_value
+        op.nop, op.nop, op.nop, op.nop, op.nop, op.nop,
+        op.pop_top,             # stack: ...
+        ])
+
+else:
+
+    assert_pattern_text = assemble_pattern([
+        op.compare_op, b'(.)', 0,
+        op.pop_jump_if_true, b'..',
+        op.load_global, b'(..)',
+        op.raise_varargs, 1, 0,
+        ])
+
+    replacement = assemble_replacement([
+        op.load_const, b'%%',   # stack: ... op1 op2 function
+        op.rot_three,           # stack: ... function op1 op2
+        op.call_function, 2, 0, # stack: ... return_value
+        op.pop_top,             # stack: ...
+        op.nop, op.nop, op.nop, op.nop,
+        ])
+
+assert_pattern = re.compile(assert_pattern_text)
+
+def rewrite_asserts_in(function):
+
+    def replace(match):
+        match.group(2) # TODO: make sure this is the right symbol
+        compare_op = match.group(1)
+        msb, lsb = divmod(offset + ord(compare_op), 256)
+        return replacement.replace(b'%%', chr(lsb) + chr(msb))
+
+    c = get_code(function)
+    offset = len(c.co_consts)
+    newcode = assert_pattern.sub(replace, c.co_code)
+    args = (
+        c.co_argcount,
+        c.co_nlocals,
+        c.co_stacksize + 1,
+        c.co_flags,
+        newcode,
+        c.co_consts + operator_constants,
+        c.co_names,
+        c.co_varnames,
+        c.co_filename,
+        c.co_name,
+        c.co_firstlineno,
+        c.co_lnotab,
+        c.co_freevars,
+        c.co_cellvars,
+        )
+    if _python3:
+        args = args[0:1] + (c.co_kwonlyargcount,) + args[1:]
+    set_code(function, types.CodeType(*args))
 
 def search_for_function(code, candidate, frame, name):
     """Find the function whose code object is `code`, else return None."""
@@ -45,111 +143,6 @@ def search_for_function(code, candidate, frame, name):
         if get_code(candidate) is code:
             return candidate
     return None
-
-def rewrite_asserts_in(function):
-    """Re-run test() after rewriting its asserts for introspection."""
-
-    if not _python27:
-        return ''
-
-    c = get_code(function)
-
-    if _python3:
-        bytecode = list(c.co_code)
-    else:
-        bytecode = [ord(b) for b in c.co_code]
-
-    try:
-        i = c.co_names.index('AssertionError')
-    except ValueError:
-        return ''
-    assert_msb, assert_lsb = divmod(i, 256)
-
-    consts = c.co_consts
-    length = len(consts)
-    format_msb, format_lsb = divmod(length, 256)
-    exception_msb, exception_lsb = divmod(length + 1, 256)
-    cmp_base = length + 2
-    consts = consts + _additional_consts
-
-    i = 0
-    original_length = len(bytecode)
-
-    load_AssertionError = [op.load_global, assert_lsb, assert_msb]
-
-    while i < original_length:
-        if bytecode[i] == op.compare_op:
-            i += 3
-            if bytecode[i] == op.pop_jump_if_true:
-                i += 3
-                if bytecode[i:i+3] == load_AssertionError:
-                    i += 3
-                    if bytecode[i] == op.raise_varargs:
-                        i += 3
-                        install_handler(bytecode, i - 12, cmp_base,
-                                        format_lsb, format_msb,
-                                        exception_lsb, exception_msb)
-        else:
-            i += 1 if (bytecode[i] < dis.HAVE_ARGUMENT) else 3
-
-    bytecode = bytes(bytecode) if _python3 else ''.join(chr(b) for b in bytecode)
-    stacksize = c.co_stacksize + 2
-
-    if _python3:
-        argcounts = (c.co_argcount, c.co_kwonlyargcount)
-    else:
-        argcounts = (c.co_argcount,)
-
-    new_func_code = types.CodeType(*argcounts + (
-        c.co_nlocals, stacksize, c.co_flags, bytecode, consts, c.co_names,
-        c.co_varnames, c.co_filename, c.co_name, c.co_firstlineno, c.co_lnotab,
-        c.co_freevars, c.co_cellvars))
-
-    set_code(function, new_func_code)
-
-def install_handler(bytecode, i, cmp_base, format_lsb, format_msb,
-                    exception_lsb, exception_msb):
-    """The index `i` should point at the COMPARE_OP of an assert."""
-
-    base = len(bytecode)
-    operator = bytecode[i+1]
-    jump_back_lsb = bytecode[i+4]
-    jump_back_msb = bytecode[i+5]
-
-    jump_to_handler_msb, jump_to_handler_lsb = divmod(base, 256)
-    bytecode[i:i+3] = [
-        op.jump_absolute, jump_to_handler_lsb, jump_to_handler_msb
-        ]
-
-    reporting_msb, reporting_lsb = divmod(base + 14 - 2 * _python3, 256)
-    symbol_msb, symbol_lsb = divmod(cmp_base + operator, 256)
-
-    # Duplicate the two operands of "compare_op" then do comparison.
-
-    bytecode.extend(
-        [op.dup_top_two] if _python3 else [op.dup_topx, 2, 0]
-        )
-    bytecode.extend([
-        op.compare_op, operator, 0,
-        op.pop_jump_if_false, reporting_lsb, reporting_msb,
-
-        # If it worked, remove the two extra copies and return control.
-
-        op.pop_top,
-        op.pop_top,
-        op.jump_absolute, jump_back_lsb, jump_back_msb,
-
-        # Otherwise, do reporting on the failed assertion.
-
-        op.load_const, format_lsb, format_msb,
-        op.rot_three,
-        op.load_const, symbol_lsb, symbol_msb,
-        op.call_function, 3, 0,
-        op.load_const, exception_lsb, exception_msb,
-        op.rot_two,
-        op.call_function, 1, 0,
-        op.raise_varargs, 1, 0,
-        ])
 
 class Debugger(bdb.Bdb):
     """Bring a function to its first breakpoint, then stop."""
