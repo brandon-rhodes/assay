@@ -117,7 +117,6 @@ def run_all_tests(arguments, workers, paths_under_test, is_batch):
         if names:
             name = names.pop()
             worker.start(capture_stdout_stderr, run_tests_of, name)
-            running_workers.add(worker)
         else:
             running_workers.remove(worker)
             paths = [path for name, path in worker.call(list_module_paths)]
@@ -128,6 +127,7 @@ def run_all_tests(arguments, workers, paths_under_test, is_batch):
 
     try:
         for worker in workers:
+            running_workers.add(worker)
             give_work_to(worker)
 
         while running_workers:
