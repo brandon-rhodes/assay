@@ -10,8 +10,15 @@ stdout_fd = sys.stdout.fileno()
 stdout_banner = ' stdout '.center(72, '-')
 stderr_banner = ' stderr '.center(72, '-')
 plain_banner = '-' * 72
-help_message = 'Press ? for help'
-help_message_length = len(help_message)
+help_hint = 'Press ? for help'
+help_hint_length = len(help_hint)
+help_message = """\
+ [j] Next exception
+ [k] Previous exception
+ [r] Restart Assay
+ [q] Quit Assay
+ [?] Help (this summary)
+"""  # Future: [m] Pipe all exceptions to more(1) or else your custom $PAGER
 
 def write(string):
     """Send `string` immediately to standard output, without buffering."""
@@ -21,7 +28,7 @@ class Reporter(object):
     def __init__(self):
         self.letters = []
         self.exceptions = []
-        self.period = 78 - help_message_length
+        self.period = 78 - help_hint_length
         self.offset = 0
         self.t0 = time()
 
@@ -35,7 +42,7 @@ class Reporter(object):
                 return
             pretty_print_exception(*result)
             self.offset = (len(self.letters) - 1) % self.period
-            write(' ' * (79 - help_message_length) + help_message + '\r')
+            write(' ' * (79 - help_hint_length) + help_hint + '\r')
         if not is_success:
             self.exceptions.append(result)
         if len(self.letters) % self.period == self.offset:
@@ -52,6 +59,9 @@ class Reporter(object):
         else:
             tally = green('All {0} tests passed'.format(total))
         write('\n{0} in {1:.2f} seconds\n'.format(tally, dt))
+
+    def show_help(self):
+        write(help_message)
 
 # def reporter_coroutine():
 #     successes = failures = 0

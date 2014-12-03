@@ -53,8 +53,9 @@ def main_loop(arguments, batch_mode):
             poller.register(worker)
 
         paths_under_test = set()
-        runner = runner_coroutine(arguments, workers, paths_under_test,
-                                  batch_mode)
+        reporter = Reporter()
+        runner = runner_coroutine(arguments, workers, reporter,
+                                  paths_under_test, batch_mode)
         next(runner)
 
         for source, flags in poller.events():
@@ -74,6 +75,8 @@ def main_loop(arguments, batch_mode):
                         sys.exit(0)
                     elif keystroke == b'r':
                         raise Restart()
+                    elif keystroke == b'?':
+                        reporter.show_help()
 
             elif source is file_watcher:
                 changes = file_watcher.read()
@@ -91,8 +94,9 @@ def main_loop(arguments, batch_mode):
                     write('\n\nFile modified: {0}\n\n'.format(paths[0]))
 
                 paths_under_test = set()
-                runner = runner_coroutine(arguments, workers, paths_under_test,
-                                          batch_mode)
+                reporter = Reporter()
+                runner = runner_coroutine(arguments, workers, reporter,
+                                          paths_under_test, batch_mode)
                 next(runner)
 
             # import_order = improve_order(import_order, dangers)
@@ -103,7 +107,8 @@ def main_loop(arguments, batch_mode):
         for worker in workers:
             worker.close()
 
-def runner_coroutine(arguments, workers, paths_under_test, batch_mode):
+def runner_coroutine(arguments, workers, reporter,
+                     paths_under_test, batch_mode):
     worker = workers[0]
     running_workers = set()
     names = []
@@ -122,7 +127,6 @@ def runner_coroutine(arguments, workers, paths_under_test, batch_mode):
             paths = [path for name, path in worker.call(list_module_paths)]
             paths_under_test.update(paths)
 
-    reporter = Reporter()
     for worker in workers:
         worker.push()
 
