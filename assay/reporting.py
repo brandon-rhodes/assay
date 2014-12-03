@@ -19,18 +19,25 @@ class Reporter(object):
     def __init__(self):
         self.letters = []
         self.exceptions = []
+        self.offset = 0
         self.t0 = time()
 
     def report_result(self, result):
-        if result == '.':
-            write('.')
-            self.letters.append('.')
-            return
-        else:
-            letter = result[0]
-            self.letters.append(letter)
-            self.exceptions.append(result)
+        is_success = (result == '.')
+        letter = '.' if is_success else result[0]
+        self.letters.append(letter)
+        if not self.exceptions:
+            if is_success:
+                write('.')
+                return
             pretty_print_exception(*result)
+            self.offset = (len(self.letters) - 1) % 72
+        if not is_success:
+            self.exceptions.append(result)
+        if len(self.letters) % 72 == self.offset:
+            write('\r')
+        write(letter)
+        #write(''.join(self.letters[-72:]) + '\r')
 
     def summarize(self):
         dt = time() - self.t0
