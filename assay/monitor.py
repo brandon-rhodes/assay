@@ -55,7 +55,7 @@ def main_loop(arguments, batch_mode):
         paths_under_test = set()
         reporter = Reporter()
         runner = runner_coroutine(arguments, workers, reporter,
-                                  paths_under_test, batch_mode)
+                                  paths_under_test)
         next(runner)
 
         for source, flags in poller.events():
@@ -64,6 +64,8 @@ def main_loop(arguments, batch_mode):
                 try:
                     runner.send(source)
                 except StopIteration:
+                    if batch_mode:
+                        exit(1 if reporter.exceptions else 0)
                     file_watcher.add_paths(paths_under_test)
                     write('Watching {0} paths...'.format(len(paths_under_test)))
 
@@ -96,7 +98,7 @@ def main_loop(arguments, batch_mode):
                 paths_under_test = set()
                 reporter = Reporter()
                 runner = runner_coroutine(arguments, workers, reporter,
-                                          paths_under_test, batch_mode)
+                                          paths_under_test)
                 next(runner)
 
             # import_order = improve_order(import_order, dangers)
@@ -107,8 +109,7 @@ def main_loop(arguments, batch_mode):
         for worker in workers:
             worker.close()
 
-def runner_coroutine(arguments, workers, reporter,
-                     paths_under_test, batch_mode):
+def runner_coroutine(arguments, workers, reporter, paths_under_test):
     worker = workers[0]
     running_workers = set()
     names = []
@@ -144,12 +145,10 @@ def runner_coroutine(arguments, workers, reporter,
                 reporter.report_result(result)
 
     finally:
-        reporter.summarize()
         for worker in workers:
             worker.pop()
 
-    if batch_mode:
-        exit(1 if failures else 0)
+    reporter.summarize()
 
 def install_import_path(path):
     sys.modules.insert(0, path)
