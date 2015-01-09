@@ -2,7 +2,6 @@
 
 from __future__ import print_function
 
-import os
 import sys
 from time import time
 
@@ -20,17 +19,25 @@ help_message = """\
  [?] Help (this summary)
 """  # Future: [m] Pipe all exceptions to more(1) or else your custom $PAGER
 
-def write(string):
-    """Send `string` immediately to standard output, without buffering."""
-    os.write(stdout_fd, string.encode('ascii'))
-
 class Reporter(object):
-    def __init__(self):
+    def __init__(self, write_callback):
+        self.write_callback = write_callback
         self.letters = []
         self.exceptions = []
+        self.column = 0
         self.period = 78 - help_hint_length
         self.offset = 0
         self.t0 = time()
+
+    def write(self, s):
+        self.write_callback(s)
+        i = s.rfind('\r')
+        if i == -1:
+            start = self.column
+        else:
+            start = 0
+            s = s[i+1:]
+        self.column = start + len(s) - s.count('\033') // 2 * 11
 
     def report_result(self, result):
         is_success = (result == '.')
@@ -38,17 +45,22 @@ class Reporter(object):
         self.letters.append(letter)
         if not self.exceptions:
             if is_success:
-                write('.')
+                self.write('.')
                 return
             pretty_print_exception(*result)
             self.offset = (len(self.letters) - 1) % self.period
-            write(' ' * (79 - help_hint_length) + help_hint + '\r')
+            self.write(' ' * (79 - help_hint_length) + help_hint + '\r')
         if not is_success:
             self.exceptions.append(result)
-        if len(self.letters) % self.period == self.offset:
-            write('\r')
-        write(letter)
-        #write(''.join(self.letters[-72:]) + '\r')
+            self.write_exception_count()
+        # if len(self.letters) % self.period == self.offset:
+        if self.column >= self.period:
+            self.write('\r')
+        self.write(letter)
+        #self.write(''.join(self.letters[-72:]) + '\r')
+
+    def write_exception_count(self):
+        self.write('\rViewing {0} of {1} errors '.format(1, len(self.exceptions)))
 
     def summarize(self):
         dt = time() - self.t0
@@ -58,10 +70,10 @@ class Reporter(object):
             tally = red('\r{0} of {1} tests failed'.format(failures, total))
         else:
             tally = green('\nAll {0} tests passed'.format(total))
-        write('{0} in {1:.2f} seconds \b'.format(tally, dt))
+        self.write('{0} in {1:.2f} seconds \b'.format(tally, dt))
 
     def show_help(self):
-        write(help_message)
+        self.write(help_message)
 
 # def reporter_coroutine():
 #     successes = failures = 0

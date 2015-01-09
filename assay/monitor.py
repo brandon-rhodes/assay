@@ -53,7 +53,7 @@ def main_loop(arguments, batch_mode):
             poller.register(worker)
 
         paths_under_test = set()
-        reporter = Reporter()
+        reporter = Reporter(write)
         runner = runner_coroutine(arguments, workers, reporter,
                                   paths_under_test)
         next(runner)
