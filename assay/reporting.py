@@ -30,14 +30,13 @@ class Reporter(object):
         self.t0 = time()
 
     def write(self, s):
+        """Write out the string `s`, keeping track of the cursor column."""
         self.write_callback(s)
         i = s.rfind('\r')
-        if i == -1:
-            start = self.column
-        else:
-            start = 0
+        if i != -1:
+            self.column = 0
             s = s[i+1:]
-        self.column = start + len(s) - s.count('\033') // 2 * 11
+        self.column += len(s) - s.count('\033') // 2 * 11
 
     def report_result(self, result):
         is_success = (result == '.')
@@ -49,18 +48,19 @@ class Reporter(object):
                 return
             pretty_print_exception(*result)
             self.offset = (len(self.letters) - 1) % self.period
-            self.write(' ' * (79 - help_hint_length) + help_hint + '\r')
+            self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
         if not is_success:
             self.exceptions.append(result)
             self.write_exception_count()
         # if len(self.letters) % self.period == self.offset:
         if self.column >= self.period:
-            self.write('\r')
+            self.write_exception_count()
         self.write(letter)
         #self.write(''.join(self.letters[-72:]) + '\r')
 
     def write_exception_count(self):
-        self.write('\rViewing {0} of {1} errors '.format(1, len(self.exceptions)))
+        message = 'Viewing {0} of {1} errors '.format(1, len(self.exceptions))
+        self.write('\r' + black(message))
 
     def summarize(self):
         dt = time() - self.t0
@@ -70,7 +70,7 @@ class Reporter(object):
             tally = red('\r{0} of {1} tests failed'.format(failures, total))
         else:
             tally = green('\nAll {0} tests passed'.format(total))
-        self.write('{0} in {1:.2f} seconds \b'.format(tally, dt))
+        self.write('{0} in {1:.2f} seconds '.format(tally, dt))
 
     def show_help(self):
         self.write(help_message)
