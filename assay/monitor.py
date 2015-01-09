@@ -67,7 +67,7 @@ def main_loop(arguments, batch_mode):
                     if batch_mode:
                         exit(1 if reporter.exceptions else 0)
                     file_watcher.add_paths(paths_under_test)
-                    write('Watching {0} paths...'.format(len(paths_under_test)))
+                    #write('Watching {0} paths...'.format(len(paths_under_test)))
 
             elif source is sys.stdin:
                 for keystroke in read_keystrokes():

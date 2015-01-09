@@ -58,7 +58,7 @@ class Reporter(object):
             tally = red('{0} of {1} tests failed'.format(failures, total))
         else:
             tally = green('All {0} tests passed'.format(total))
-        write('\n{0} in {1:.2f} seconds\n'.format(tally, dt))
+        write('\r{0} in {1:.2f} seconds '.format(tally, dt))
 
     def show_help(self):
         write(help_message)
