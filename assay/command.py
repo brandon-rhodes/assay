@@ -26,4 +26,4 @@ def main():
         executable = sys.executable
         os.execvp(executable, [executable, '-m', 'assay'] + sys.argv[1:])
     except KeyboardInterrupt:
-        sys.stdout.write('\n')
+        sys.stdout.write(' KeyboardInterrupt\n')

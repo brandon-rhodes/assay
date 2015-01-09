@@ -71,9 +71,8 @@ def main_loop(arguments, batch_mode):
 
             elif source is sys.stdin:
                 for keystroke in read_keystrokes():
-                    print('got {0}'.format(keystroke))
                     if keystroke == b'q' or keystroke == ctrl_d:
-                        print('exiting')
+                        print(' quit')
                         sys.exit(0)
                     elif keystroke == b'r':
                         raise Restart()
