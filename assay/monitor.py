@@ -90,7 +90,6 @@ def main_loop(arguments, batch_mode):
                     write('\nAssay has been modified: {0}'.format(example_path))
                     raise Restart()
                 runner.close()
-                write(repr(paths))
 
                 if paths:
                     write('\n\nFile modified: {0}\n\n'.format(paths[0]))
