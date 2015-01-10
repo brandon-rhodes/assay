@@ -1,5 +1,6 @@
 """Support for users interacting with the terminal."""
 
+import errno
 import fcntl
 import os
 import select
@@ -84,5 +85,9 @@ class EPoll(object):
 
     def events(self):
         while True:
-            for fd, flags in self.poller.poll():
-                yield self.fdmap[fd], flags
+            try:
+                for fd, flags in self.poller.poll():
+                    yield self.fdmap[fd], flags
+            except IOError as e:
+                if e.errno != errno.EINTR:
+                    raise
