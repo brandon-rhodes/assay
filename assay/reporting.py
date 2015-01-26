@@ -51,7 +51,6 @@ class InteractiveReporter(object):
         self.error_index = 0
         self.column = 0
         self.period = 78 - help_hint_length
-        self.offset = 0
         self.t0 = time()
 
     def write(self, s):
@@ -72,12 +71,10 @@ class InteractiveReporter(object):
                 self.write('.')
                 return
             self.write(pretty_format_error(*result))
-            self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
         if not is_success:
             self.errors.append(result)
             self.write_error_count()
-        # if len(self.letters) % self.period == self.offset:
         if self.column >= self.period:
             self.write_error_count()
         self.write(letter)
@@ -106,7 +103,6 @@ class InteractiveReporter(object):
                 return
             self.error_index += 1
             self.write(pretty_format_error(*self.errors[self.error_index]))
-            self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
             self.write_error_count()
         elif keystroke == b'k':
@@ -114,7 +110,6 @@ class InteractiveReporter(object):
                 return
             self.error_index -= 1
             self.write(pretty_format_error(*self.errors[self.error_index]))
-            self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
             self.write_error_count()
 
