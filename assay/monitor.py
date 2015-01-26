@@ -76,8 +76,8 @@ def main_loop(arguments, batch_mode):
                         sys.exit(0)
                     elif keystroke == b'r':
                         raise Restart()
-                    elif keystroke == b'?':
-                        reporter.show_help()
+                    else:
+                        reporter.process_keystroke(keystroke)
 
             elif source is file_watcher:
                 changes = file_watcher.read()

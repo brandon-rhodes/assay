@@ -11,7 +11,7 @@ stderr_banner = ' stderr '.center(72, '-')
 plain_banner = '-' * 72
 help_hint = 'Press ? for help'
 help_hint_length = len(help_hint)
-help_message = """\
+help_message = """
  [j] Next exception
  [k] Previous exception
  [r] Restart Assay
@@ -24,6 +24,7 @@ class Reporter(object):
         self.write_callback = write_callback
         self.letters = []
         self.exceptions = []
+        self.exception_index = 0
         self.column = 0
         self.period = 78 - help_hint_length
         self.offset = 0
@@ -72,8 +73,23 @@ class Reporter(object):
             tally = green('\nAll {0} tests passed'.format(total))
         self.write('{0} in {1:.2f} seconds '.format(tally, dt))
 
-    def show_help(self):
-        self.write(help_message)
+    def process_keystroke(self, keystroke):
+        if keystroke == b'?':
+            self.write(help_message)
+        elif keystroke == b'j':
+            if self.exception_index + 1 >= len(self.exceptions):
+                return
+            self.exception_index += 1
+            pretty_print_exception(*self.exceptions[self.exception_index])
+            self.offset = (len(self.letters) - 1) % self.period
+            self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
+        elif keystroke == b'k':
+            if not self.exception_index:
+                return
+            self.exception_index -= 1
+            pretty_print_exception(*self.exceptions[self.exception_index])
+            self.offset = (len(self.letters) - 1) % self.period
+            self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
 
 # def reporter_coroutine():
 #     successes = failures = 0
