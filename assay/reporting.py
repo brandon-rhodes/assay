@@ -32,7 +32,7 @@ class BatchReporter(object):
             self.write_callback('.')
         else:
             self.errors += 1
-            pretty_print_error(*result)  # TODO: should use the writer
+            self.write_callback(pretty_format_error(*result))
 
     def summarize(self):
         dt = time() - self.t0
@@ -71,7 +71,7 @@ class InteractiveReporter(object):
             if is_success:
                 self.write('.')
                 return
-            pretty_print_error(*result)
+            self.write(pretty_format_error(*result))
             self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
         if not is_success:
@@ -105,7 +105,7 @@ class InteractiveReporter(object):
             if self.error_index + 1 >= len(self.errors):
                 return
             self.error_index += 1
-            pretty_print_error(*self.errors[self.error_index])
+            self.write(pretty_format_error(*self.errors[self.error_index]))
             self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
             self.write_error_count()
@@ -113,7 +113,7 @@ class InteractiveReporter(object):
             if not self.error_index:
                 return
             self.error_index -= 1
-            pretty_print_error(*self.errors[self.error_index])
+            self.write(pretty_format_error(*self.errors[self.error_index]))
             self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
             self.write_error_count()
@@ -136,12 +136,14 @@ class InteractiveReporter(object):
 #         tally = green('All {0} tests passed'.format(successes))
 #     write('\n{0} in {1:.2f} seconds\n'.format(tally, dt))
 
-def pretty_print_error(character, name, message, frames, out='', err=''):
-    print()
+def pretty_format_error(character, name, message, frames, out='', err=''):
+    lines = ['']
+    print = lines.append
+
     out = out.rstrip()
     err = err.rstrip()
     if out:
-        print(stdout_banner)
+        lines.append(stdout_banner)
         print(green(out))
     if err:
         print(stderr_banner)
@@ -157,7 +159,9 @@ def pretty_print_error(character, name, message, frames, out='', err=''):
         print(blue('    ' + text.replace('\n', '\n    ')))
     line = '{0}: {1}'.format(name, message) if message else name
     print(red(line))
-    print()
+    print('')
+
+    return '\n'.join(lines)
 
 def black(text): # ';47' does bg color
     return '\033[1;30m' + str(text) + '\033[0m'
