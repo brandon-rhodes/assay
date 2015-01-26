@@ -60,7 +60,8 @@ class Reporter(object):
         #self.write(''.join(self.letters[-72:]) + '\r')
 
     def write_exception_count(self):
-        message = 'Viewing {0} of {1} errors '.format(1, len(self.exceptions))
+        c = self.exception_index + 1
+        message = 'Viewing {0} of {1} errors '.format(c, len(self.exceptions))
         self.write('\r' + black(message))
 
     def summarize(self):
@@ -83,6 +84,7 @@ class Reporter(object):
             pretty_print_exception(*self.exceptions[self.exception_index])
             self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
+            self.write_exception_count()
         elif keystroke == b'k':
             if not self.exception_index:
                 return
@@ -90,6 +92,7 @@ class Reporter(object):
             pretty_print_exception(*self.exceptions[self.exception_index])
             self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
+            self.write_exception_count()
 
 # def reporter_coroutine():
 #     successes = failures = 0
