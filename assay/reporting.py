@@ -12,8 +12,8 @@ plain_banner = '-' * 72
 help_hint = 'Press ? for help'
 help_hint_length = len(help_hint)
 help_message = """
- [j] Next error
- [k] Previous error
+ [j] Next error      [J] Last error
+ [k] Previous error  [K] First error
  [r] Restart Assay
  [q] Quit Assay
  [?] Help (this summary)
@@ -99,25 +99,24 @@ class InteractiveReporter(object):
         if keystroke == b'?':
             self.write(help_message)
             return
-        elif keystroke == b'j':
-            if self.index + 1 >= len(self.errors):
-                return
-            self.index += 1
+
+        if keystroke == b'j':
+            target = self.index + 1
         elif keystroke == b'k':
-            if not self.index:
-                return
-            self.index -= 1
+            target = self.index - 1
         elif keystroke == b'J':
-            if self.index == len(self.errors) - 1:
-                return
-            self.index += 1
-        elif keystroke == b'k':
-            if not self.index:
-                return
-            self.index -= 1
+            target = len(self.errors) - 1
+        elif keystroke == b'K':
+            target = 0
         else:
             return
 
+        if not 0 <= target < len(self.errors):
+            return
+        if target == self.index:
+            return
+
+        self.index = target
         self.write(pretty_format_error(*self.errors[self.index]))
         self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
         self.write_error_count()
