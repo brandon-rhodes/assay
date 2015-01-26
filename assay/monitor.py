@@ -8,7 +8,7 @@ from . import unix
 from .discovery import interpret_argument, search_argument
 from .filesystem import Filesystem
 from .importation import import_module, improve_order, list_module_paths
-from .reporting import Reporter
+from .reporting import BatchReporter, InteractiveReporter
 from .runner import capture_stdout_stderr, run_tests_of
 from .worker import Worker
 
@@ -41,7 +41,10 @@ def main_loop(arguments, batch_mode):
 
     poller = unix.EPoll()
     poller.register(file_watcher)
-    if not batch_mode:
+    if batch_mode:
+        reporter_class = BatchReporter
+    else:
+        reporter_class = InteractiveReporter
         poller.register(sys.stdin)
 
     runner = None  # so our 'finally' clause does not explode
@@ -53,7 +56,7 @@ def main_loop(arguments, batch_mode):
             poller.register(worker)
 
         paths_under_test = set()
-        reporter = Reporter(write)
+        reporter = reporter_class(write)
         runner = runner_coroutine(arguments, workers, reporter,
                                   paths_under_test)
         next(runner)
@@ -94,7 +97,7 @@ def main_loop(arguments, batch_mode):
                     write('\n\nFile modified: {0}\n\n'.format(paths[0]))
 
                 paths_under_test = set()
-                reporter = Reporter(write)
+                reporter = reporter_class(write)
                 runner = runner_coroutine(arguments, workers, reporter,
                                           paths_under_test)
                 next(runner)

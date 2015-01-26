@@ -19,7 +19,31 @@ help_message = """
  [?] Help (this summary)
 """  # Future: [m] Pipe all errors to more(1) or else your custom $PAGER
 
-class Reporter(object):
+class BatchReporter(object):
+    def __init__(self, write_callback):
+        self.write_callback = write_callback
+        self.errors = 0
+        self.tests = 0
+        self.t0 = time()
+
+    def report_result(self, result):
+        self.tests += 1
+        if result == '.':
+            self.write_callback('.')
+        else:
+            self.errors += 1
+            pretty_print_error(*result)  # TODO: should use the writer
+
+    def summarize(self):
+        dt = time() - self.t0
+        if self.errors:
+            tally = '{0} of {1} tests failed'.format(self.errors, self.tests)
+        else:
+            tally = 'All {0} tests passed'.format(self.tests)
+        self.write_callback('\n\n{0} in {1:.2f} seconds\n'.format(tally, dt))
+
+
+class InteractiveReporter(object):
     def __init__(self, write_callback):
         self.write_callback = write_callback
         self.letters = []
