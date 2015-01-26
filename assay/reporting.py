@@ -12,8 +12,9 @@ plain_banner = '-' * 72
 help_hint = 'Press ? for help'
 help_hint_length = len(help_hint)
 help_message = """
- [j] Next error      [J] Last error
- [k] Previous error  [K] First error
+ [j] Next error         [J] Last error
+ [k] Previous error     [K] First error
+ [l] List failing tests
  [r] Restart Assay
  [q] Quit Assay
  [?] Help (this summary)
@@ -70,7 +71,9 @@ class InteractiveReporter(object):
             if is_success:
                 self.write('.')
                 return
+            self.write('\n')
             self.write(pretty_format_error(*result))
+            self.write('\n')
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
         if not is_success:
             self.errors.append(result)
@@ -78,7 +81,6 @@ class InteractiveReporter(object):
         if self.column >= self.period:
             self.write_error_count()
         self.write(letter)
-        #self.write(''.join(self.letters[-72:]) + '\r')
 
     def write_error_count(self):
         c = self.index + 1
@@ -100,25 +102,39 @@ class InteractiveReporter(object):
             self.write(help_message)
             return
 
+        if len(self.errors) == 0:
+            return
+
+        target = None
+
         if keystroke == b'j':
             target = self.index + 1
-        elif keystroke == b'k':
-            target = self.index - 1
         elif keystroke == b'J':
             target = len(self.errors) - 1
+        elif keystroke == b'k':
+            target = self.index - 1
         elif keystroke == b'K':
             target = 0
+        elif keystroke == b'l':
+            self.write('\n\n')
+            for error in self.errors:
+                frames = error[3]
+                filename, line_number, function_name, text = frames[0]
+                self.write('{} {}()\n'.format(filename, function_name))
         else:
             return
 
-        if not 0 <= target < len(self.errors):
-            return
-        if target == self.index:
-            return
+        if target is not None:
+            if not 0 <= target < len(self.errors):
+                return
+            if target == self.index:
+                return
+            self.index = target
 
-        self.index = target
+        self.write('\n')
         self.write(pretty_format_error(*self.errors[self.index]))
-        self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
+        indent = ' ' * (79 - help_hint_length)
+        self.write('\n{}{}\r'.format(indent, black(help_hint)))
         self.write_error_count()
 
 
