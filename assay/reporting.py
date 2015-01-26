@@ -98,20 +98,21 @@ class InteractiveReporter(object):
     def process_keystroke(self, keystroke):
         if keystroke == b'?':
             self.write(help_message)
+            return
         elif keystroke == b'j':
             if self.error_index + 1 >= len(self.errors):
                 return
             self.error_index += 1
-            self.write(pretty_format_error(*self.errors[self.error_index]))
-            self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
-            self.write_error_count()
         elif keystroke == b'k':
             if not self.error_index:
                 return
             self.error_index -= 1
-            self.write(pretty_format_error(*self.errors[self.error_index]))
-            self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
-            self.write_error_count()
+        else:
+            return
+
+        self.write(pretty_format_error(*self.errors[self.error_index]))
+        self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
+        self.write_error_count()
 
 
 def pretty_format_error(character, name, message, frames, out='', err=''):
