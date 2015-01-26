@@ -48,7 +48,7 @@ class InteractiveReporter(object):
         self.write_callback = write_callback
         self.letters = []
         self.errors = []
-        self.error_index = 0
+        self.index = 0
         self.column = 0
         self.period = 78 - help_hint_length
         self.t0 = time()
@@ -81,7 +81,7 @@ class InteractiveReporter(object):
         #self.write(''.join(self.letters[-72:]) + '\r')
 
     def write_error_count(self):
-        c = self.error_index + 1
+        c = self.index + 1
         message = 'Viewing {0} of {1} errors '.format(c, len(self.errors))
         self.write('\r' + black(message))
 
@@ -100,17 +100,25 @@ class InteractiveReporter(object):
             self.write(help_message)
             return
         elif keystroke == b'j':
-            if self.error_index + 1 >= len(self.errors):
+            if self.index + 1 >= len(self.errors):
                 return
-            self.error_index += 1
+            self.index += 1
         elif keystroke == b'k':
-            if not self.error_index:
+            if not self.index:
                 return
-            self.error_index -= 1
+            self.index -= 1
+        elif keystroke == b'J':
+            if self.index == len(self.errors) - 1:
+                return
+            self.index += 1
+        elif keystroke == b'k':
+            if not self.index:
+                return
+            self.index -= 1
         else:
             return
 
-        self.write(pretty_format_error(*self.errors[self.error_index]))
+        self.write(pretty_format_error(*self.errors[self.index]))
         self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
         self.write_error_count()
 
