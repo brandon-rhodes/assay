@@ -118,23 +118,6 @@ class InteractiveReporter(object):
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
             self.write_error_count()
 
-# def reporter_coroutine():
-#     successes = failures = 0
-#     t0 = time()
-#     for item in (yield):
-#         if item == '.':
-#             write('.')
-#             successes += 1
-#         elif isinstance(item, tuple):
-#             pretty_print_error(*item)
-#             failures += 1
-#     dt = time() - t0
-#     if failures:
-#         tally = red('{0} of {1} tests failed'.format(
-#             failures, successes + failures))
-#     else:
-#         tally = green('All {0} tests passed'.format(successes))
-#     write('\n{0} in {1:.2f} seconds\n'.format(tally, dt))
 
 def pretty_format_error(character, name, message, frames, out='', err=''):
     lines = ['']
