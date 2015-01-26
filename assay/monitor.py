@@ -65,7 +65,7 @@ def main_loop(arguments, batch_mode):
                     runner.send(source)
                 except StopIteration:
                     if batch_mode:
-                        exit(1 if reporter.exceptions else 0)
+                        exit(1 if reporter.errors else 0)
                     file_watcher.add_paths(paths_under_test)
                     #write('Watching {0} paths...'.format(len(paths_under_test)))
 

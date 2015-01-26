@@ -12,19 +12,19 @@ plain_banner = '-' * 72
 help_hint = 'Press ? for help'
 help_hint_length = len(help_hint)
 help_message = """
- [j] Next exception
- [k] Previous exception
+ [j] Next error
+ [k] Previous error
  [r] Restart Assay
  [q] Quit Assay
  [?] Help (this summary)
-"""  # Future: [m] Pipe all exceptions to more(1) or else your custom $PAGER
+"""  # Future: [m] Pipe all errors to more(1) or else your custom $PAGER
 
 class Reporter(object):
     def __init__(self, write_callback):
         self.write_callback = write_callback
         self.letters = []
-        self.exceptions = []
-        self.exception_index = 0
+        self.errors = []
+        self.error_index = 0
         self.column = 0
         self.period = 78 - help_hint_length
         self.offset = 0
@@ -43,30 +43,30 @@ class Reporter(object):
         is_success = (result == '.')
         letter = '.' if is_success else result[0]
         self.letters.append(letter)
-        if not self.exceptions:
+        if not self.errors:
             if is_success:
                 self.write('.')
                 return
-            pretty_print_exception(*result)
+            pretty_print_error(*result)
             self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
         if not is_success:
-            self.exceptions.append(result)
-            self.write_exception_count()
+            self.errors.append(result)
+            self.write_error_count()
         # if len(self.letters) % self.period == self.offset:
         if self.column >= self.period:
-            self.write_exception_count()
+            self.write_error_count()
         self.write(letter)
         #self.write(''.join(self.letters[-72:]) + '\r')
 
-    def write_exception_count(self):
-        c = self.exception_index + 1
-        message = 'Viewing {0} of {1} errors '.format(c, len(self.exceptions))
+    def write_error_count(self):
+        c = self.error_index + 1
+        message = 'Viewing {0} of {1} errors '.format(c, len(self.errors))
         self.write('\r' + black(message))
 
     def summarize(self):
         dt = time() - self.t0
-        failures = len(self.exceptions)
+        failures = len(self.errors)
         total = len(self.letters)
         if failures:
             tally = red('\r{0} of {1} tests failed'.format(failures, total))
@@ -78,21 +78,21 @@ class Reporter(object):
         if keystroke == b'?':
             self.write(help_message)
         elif keystroke == b'j':
-            if self.exception_index + 1 >= len(self.exceptions):
+            if self.error_index + 1 >= len(self.errors):
                 return
-            self.exception_index += 1
-            pretty_print_exception(*self.exceptions[self.exception_index])
+            self.error_index += 1
+            pretty_print_error(*self.errors[self.error_index])
             self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
-            self.write_exception_count()
+            self.write_error_count()
         elif keystroke == b'k':
-            if not self.exception_index:
+            if not self.error_index:
                 return
-            self.exception_index -= 1
-            pretty_print_exception(*self.exceptions[self.exception_index])
+            self.error_index -= 1
+            pretty_print_error(*self.errors[self.error_index])
             self.offset = (len(self.letters) - 1) % self.period
             self.write(' ' * (79 - help_hint_length) + black(help_hint) + '\r')
-            self.write_exception_count()
+            self.write_error_count()
 
 # def reporter_coroutine():
 #     successes = failures = 0
@@ -102,7 +102,7 @@ class Reporter(object):
 #             write('.')
 #             successes += 1
 #         elif isinstance(item, tuple):
-#             pretty_print_exception(*item)
+#             pretty_print_error(*item)
 #             failures += 1
 #     dt = time() - t0
 #     if failures:
@@ -112,7 +112,7 @@ class Reporter(object):
 #         tally = green('All {0} tests passed'.format(successes))
 #     write('\n{0} in {1:.2f} seconds\n'.format(tally, dt))
 
-def pretty_print_exception(character, name, message, frames, out='', err=''):
+def pretty_print_error(character, name, message, frames, out='', err=''):
     print()
     out = out.rstrip()
     err = err.rstrip()
