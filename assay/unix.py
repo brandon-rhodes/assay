@@ -103,3 +103,40 @@ class EPoll(object):
                 if e.errno != errno.EINTR:
                     raise
 
+
+class KQueue(object):
+    """File descriptor polling object that returns objects, not integers."""
+
+    def __init__(self):
+        self.fdmap = {}
+        self.poller = select.kqueue()
+
+    def register(self, obj):
+        fd = obj.fileno()
+        self.fdmap[fd] = obj
+        event = [select.kevent(
+            fd,
+            select.KQ_FILTER_READ,
+            flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE,
+        )]
+        self.poller.control(event, max_events=0)
+
+    def unregister(self, obj):
+        fd = obj.fileno()
+        del self.fdmap[fd]
+        event = [select.kevent(
+            fd,
+            select.KQ_FILTER_READ,
+            select.KQ_EV_DELETE
+        )]
+        self.poller.control(event, max_events=0)
+
+    def events(self):
+        while True:
+            try:
+                for event in self.poller.control(None, max_events=0):
+                    yield self.fdmap[event.ident], event.flags
+            except IOError as e:
+                if e.errno != errno.EINTR:
+                    raise
+        self.poller.close()
