@@ -73,7 +73,9 @@ class EPoll(object):
         self.fdmap = {}
         self.poller = select.epoll()
 
-    def register(self, obj, flags=select.EPOLLIN):
+    def register(self, obj, flags=None):
+        if flags is None:
+            flags = select.EPOLLIN
         fd = obj.fileno()
         self.fdmap[fd] = obj
         self.poller.register(fd, flags)
