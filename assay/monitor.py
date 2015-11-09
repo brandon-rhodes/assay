@@ -36,14 +36,14 @@ def main_loop(arguments, batch_mode):
 
     main_process_paths = set(path for name, path in list_module_paths())
 
-    file_watcher = Filesystem()
-    file_watcher.add_paths(main_process_paths)
-
     poller = unix.EPoll()
-    poller.register(file_watcher)
     if batch_mode:
+        file_watcher = None
         reporter_class = BatchReporter
     else:
+        file_watcher = Filesystem()
+        file_watcher.add_paths(main_process_paths)
+        poller.register(file_watcher)
         reporter_class = InteractiveReporter
         poller.register(sys.stdin)
 
@@ -153,3 +153,4 @@ def runner_coroutine(arguments, workers, reporter, paths_under_test):
 
 def install_import_path(path):
     sys.modules.insert(0, path)
+

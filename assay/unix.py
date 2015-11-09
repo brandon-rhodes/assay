@@ -71,11 +71,17 @@ class EPoll(object):
 
     def __init__(self):
         self.fdmap = {}
-        self.poller = select.epoll()
+        try:
+            self.poller = select.epoll()
+        except AttributeError:
+            self.poller = select.poll()  # TODO: does this work on OS X?
 
     def register(self, obj, flags=None):
         if flags is None:
-            flags = select.EPOLLIN
+            try:
+                flags = select.EPOLLIN
+            except AttributeError:
+                flags = select.POLLIN
         fd = obj.fileno()
         self.fdmap[fd] = obj
         self.poller.register(fd, flags)
@@ -93,3 +99,4 @@ class EPoll(object):
             except IOError as e:
                 if e.errno != errno.EINTR:
                     raise
+
