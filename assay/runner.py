@@ -185,7 +185,7 @@ def traceback_frames(return_top_frame=False):
             line = line.strip() if line else None
             tuples.append((relativize(filename), lineno, code.co_name, line))
         tb = tb.tb_next
-    if isinstance(e, SyntaxError):
+    if isinstance(e, SyntaxError) and (e.text is not None):
         line = '{0}\n{1}^'.format(e.text.rstrip(), ' ' * (e.offset - 1))
         tuples.append((relativize(e.filename), e.lineno, None, line))
     return (tuples, frame) if return_top_frame else tuples
