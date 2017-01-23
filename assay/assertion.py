@@ -13,6 +13,7 @@ _python26 = sys.version_info < (2, 7)
 _python27 = sys.version_info < (3,)
 _python3 = sys.version_info >= (3,)
 _case = unittest.TestCase('setUp')
+_case.maxDiff = 2048  # TODO: people should be able to customize this
 
 fancy_comparisons = {
     '==': _case.assertEqual,
