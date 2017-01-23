@@ -143,22 +143,22 @@ def run_test_with_arguments(test, args):
     else:
         return '.'
 
-    if not message:
-        if text.startswith('assert') and not text[6].isalnum():
-            if function and not hasattr(function, 'assay_rewritten'):
-                rewrite_asserts_in(function)
-                function.assay_rewritten = True
-                try:
-                    test(*args)
-                except AssertionError as e:
-                    message = str(e)
-                except Exception as e:
-                    type_name2, message2 = type(e).__name__, str(e)
-                    message = ('Assay re-ran your test to examine its failed assert, but the'
-                               ' second time it raised {0}: {1}'.format(type_name2, message2))
-                else:
-                    message = ('Assay re-ran your test to examine its failed assert, but it'
-                               ' passed the second time')
+    if (not message) and function and not hasattr(function, 'assay_rewritten'):
+        rewrite_asserts_in(function)
+        function.assay_rewritten = True
+        try:
+            test(*args)
+        except AssertionError as e:
+            message = str(e)
+        except Exception as e:
+            type_name2, message2 = type(e).__name__, str(e)
+            message = (
+                'Assay re-ran your test to examine its failed assert, but the'
+                ' second time it raised {0}: {1}'.format(type_name2, message2))
+        else:
+            message = (
+                'Assay re-ran your test to examine its failed assert, but it'
+                ' passed the second time')
 
             if not message:
                 pass  # TODO: slower introspection
