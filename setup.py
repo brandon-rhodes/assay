@@ -1,4 +1,6 @@
-from distutils.core import setup
+#!/usr/bin/env python
+
+from setuptools import setup
 
 setup(
     name='assay',
@@ -17,9 +19,9 @@ setup(
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
-        ],
+    ],
     packages=['assay'],
-    entry_points = {
+    entry_points={
         'console_scripts': ['assay=assay.command:main'],
-        },
-    )
+    },
+)
