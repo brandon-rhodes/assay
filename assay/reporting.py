@@ -158,7 +158,8 @@ def pretty_format_error(character, name, message, frames, out='', err=''):
         b = '{0}'.format(function_name)
         f = '{0}\n  {1}' if (len(a) + len(b) > 78) else '{0} {1}'
         print(f.format(a, b))
-        print(blue('    ' + text.replace('\n', '\n    ')))
+        if text is not None:
+            print(blue('    ' + text.replace('\n', '\n    ')))
     line = '{0}: {1}'.format(name, message) if message else name
     print(red(line))
     print('')
