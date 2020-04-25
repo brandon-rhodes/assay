@@ -4,17 +4,13 @@ import bdb
 import dis
 import operator
 import re
-import sys
 import types
+from sys import version_info as _python_version
 from types import FunctionType
 from .compatibility import get_code, set_code, unittest
 
-_python26 = sys.version_info < (2, 7)
-_python27 = sys.version_info < (3,)
-_python3 = sys.version_info >= (3,)
 _case = unittest.TestCase('setUp')
 _case.maxDiff = 2048  # TODO: people should be able to customize this
-
 fancy_comparisons = {
     '==': _case.assertEqual,
     'in': _case.assertIn,
@@ -53,7 +49,7 @@ for i, symbol in enumerate(dis.opname):
 
 # How to assemble regular expressions and replacement strings.
 
-if _python3:
+if _python_version >= (3,0):
     def chr(n):
         return bytes((n,))
 
@@ -66,7 +62,7 @@ def assemble_pattern(things):
 
 # How an "assert" statement looks in each version of Python.
 
-if _python26:
+if _python_version <= (2,6):
 
     assert_pattern_text = assemble_pattern([
         op.compare_op, b'(.)', 0,
@@ -85,7 +81,7 @@ if _python26:
         op.pop_top,             # stack: ...
         ])
 
-else:
+elif _python_version <= (3,5):
 
     assert_pattern_text = assemble_pattern([
         op.compare_op, b'(.)', 0,
@@ -102,6 +98,22 @@ else:
         op.nop, op.nop, op.nop, op.nop,
         ])
 
+else:
+
+    assert_pattern_text = assemble_pattern([
+        op.compare_op, b'(.)',
+        op.pop_jump_if_true, b'.',
+        op.load_global, b'(.)',
+        op.raise_varargs, 1,
+        ])
+
+    replacement = assemble_replacement([
+        op.load_const, b'%%',   # stack: ... op1 op2 function
+        op.rot_three, 0,        # stack: ... function op1 op2
+        op.call_function, 2,    # stack: ... return_value
+        op.pop_top, 0,          # stack: ...
+        ])
+
 assert_pattern = re.compile(assert_pattern_text)
 
 def rewrite_asserts_in(function):
@@ -109,8 +121,12 @@ def rewrite_asserts_in(function):
     def replace(match):
         match.group(2) # TODO: make sure this is the right symbol
         compare_op = match.group(1)
-        msb, lsb = divmod(offset + ord(compare_op), 256)
-        return replacement.replace(b'%%', chr(lsb) + chr(msb))
+        if _python_version <= (3,5):
+            msb, lsb = divmod(offset + ord(compare_op), 256)
+            code = replacement.replace(b'%%', chr(lsb) + chr(msb))
+        else:
+            code = replacement.replace(b'%%', chr(offset + ord(compare_op)))
+        return code
 
     c = get_code(function)
     offset = len(c.co_consts)
@@ -131,7 +147,7 @@ def rewrite_asserts_in(function):
         c.co_freevars,
         c.co_cellvars,
         )
-    if _python3:
+    if _python_version >= (3,0):
         args = args[0:1] + (c.co_kwonlyargcount,) + args[1:]
     set_code(function, types.CodeType(*args))
 
