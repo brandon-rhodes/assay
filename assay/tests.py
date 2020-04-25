@@ -337,8 +337,8 @@ class ErrorMessageTests(unittest.TestCase):
         result = self.execute(samples.test_syntax_error)
         self.assertEqual(result, [
             ('E', 'SyntaxError', 'invalid syntax (<string>, line 1)', [
-                ('assay/samples.py', 1, 'test_syntax_error', "eval('1+2@3')"),
-                ('<string>', 1, None, '1+2@3\n   ^'),
+                ('assay/samples.py', 1, 'test_syntax_error', "eval('1+2!3')"),
+                ('<string>', 1, None, '1+2!3\n   ^'),
                 ]),
             ])
 

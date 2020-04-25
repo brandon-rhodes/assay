@@ -65,7 +65,7 @@ def test_fix4(test_exc):
     pass
 
 def test_syntax_error():
-    eval('1+2@3')
+    eval('1+2!3')
 
 def test_raises1():
     with assert_raises(ValueError):
