@@ -5,12 +5,13 @@ import dis
 import operator
 import re
 import types
-from sys import version_info as _python_version
+from sys import version_info
 from types import FunctionType
 from .compatibility import get_code, set_code, unittest
 
 _case = unittest.TestCase('setUp')
 _case.maxDiff = 2048  # TODO: people should be able to customize this
+_python_version = version_info[:2]
 fancy_comparisons = {
     '==': _case.assertEqual,
     'in': _case.assertIn,

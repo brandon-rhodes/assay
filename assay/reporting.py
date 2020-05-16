@@ -120,7 +120,7 @@ class InteractiveReporter(object):
             for error in self.errors:
                 frames = error[3]
                 filename, line_number, function_name, text = frames[0]
-                self.write('{} {}()\n'.format(filename, function_name))
+                self.write('{0} {1}()\n'.format(filename, function_name))
         else:
             return
 
@@ -134,7 +134,7 @@ class InteractiveReporter(object):
         self.write('\n')
         self.write(pretty_format_error(*self.errors[self.index]))
         indent = ' ' * (79 - help_hint_length)
-        self.write('\n{}{}\r'.format(indent, black(help_hint)))
+        self.write('\n{0}{1}\r'.format(indent, black(help_hint)))
         self.write_error_count()
 
 
