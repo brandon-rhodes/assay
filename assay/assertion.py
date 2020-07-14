@@ -115,7 +115,10 @@ else:
         op.pop_top, 0,          # stack: ...
         ])
 
-assert_pattern = re.compile(assert_pattern_text)
+# Note that "re.S" is crucial when compiling this pattern, as a byte we
+# are trying to match with "." might happen to have the numeric value of
+# an ASCII newline.
+assert_pattern = re.compile(assert_pattern_text, re.S)
 
 def rewrite_asserts_in(function):
 
