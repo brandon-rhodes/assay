@@ -46,6 +46,7 @@ def interpret_argument(worker, name):
         return None, name
 
     print('Error - can neither open nor import: {0}'.format(name))
+    exit(1)
 
 def search_argument(import_directory, import_name):
     """Given a tuple returned by `interpret_argument()`, find tests."""
