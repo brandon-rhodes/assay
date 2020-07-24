@@ -1,7 +1,6 @@
 import ctypes
 import re
 import time
-from collections import defaultdict
 from keyword import iskeyword
 from os import listdir, read, stat, strerror
 from os.path import dirname, isdir, join
@@ -27,12 +26,6 @@ def _setup_libc():
     _libc.inotify_add_watch.argtypes = [
         ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
     _libc.inotify_add_watch.restype = ctypes.c_int
-
-def wait_on(paths):
-    # TODO: auto-detect when the OS does not offer libc or libc does not
-    # offer inotify_wait, and fall back to looping_wait_on().
-    _setup_libc()
-    return _inotify_wait_on(paths)
 
 def looping_wait_on(paths):
     start = time.time()

@@ -66,21 +66,6 @@ def search_argument(import_directory, import_name):
             names.append(import_name + '.' + module_name)
     return names
 
-def search_plain_directory(directory, listing):
-    possible_packages = []
-    for filename in listing:
-        module_name = module_name_of(filename)
-        if module_name is not None:
-            yield module_name, directory
-        elif is_identifier(filename):
-            possible_packages.append(filename)
-    for filename in possible_packages:
-        subdirectory = os.path.join(directory, filename)
-        filenames = os.listdir(subdirectory)
-        if '__init__.py' in filenames:
-            asdf
-        os.walk
-
 def insert_path_and_search_package_or_module(path, name):
     sys.path.insert(0, path)
     return search_package_or_module(name)

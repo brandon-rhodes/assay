@@ -7,7 +7,7 @@ import sys
 from . import unix
 from .discovery import interpret_argument, search_argument
 from .filesystem import Filesystem
-from .importation import import_module, improve_order, list_module_paths
+from .importation import list_module_paths
 from .reporting import BatchReporter, InteractiveReporter
 from .runner import capture_stdout_stderr, run_tests_of
 from .worker import Worker
