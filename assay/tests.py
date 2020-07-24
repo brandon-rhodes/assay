@@ -17,6 +17,7 @@ from .importation import improve_order
 from .runner import run_tests_of, run_test
 
 _python33 = sys.version_info >= (3, 3)
+_python38 = sys.version_info >= (3, 8)
 
 # Tests.
 
@@ -152,10 +153,11 @@ class RunnerTests(unittest.TestCase):
                 value = list(run_tests_of(module_name))
             finally:
                 del sys.path[0]
+        arrow = '   ^' if _python38 else '       ^'
         self.assertEqual(value, [
             ('F', 'SyntaxError',
              'invalid syntax ({0}, line 3)'.format(basename),
-             [(f.name, 3, None, 'if while\n       ^')]),
+             [(f.name, 3, None, 'if while\n' + arrow)]),
             ])
 
     def test_runner_on_module_that_throws_exception_during_import(self):
