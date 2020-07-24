@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from . import samples
 from .compatibility import get_code, unittest
 from .discovery import interpret_argument
-from .importation import improve_order
+from .importation import improve_order, list_module_paths
 from .runner import run_tests_of, run_test
 
 _python33 = sys.version_info >= (3, 3)
@@ -129,6 +129,17 @@ class DiscoveryTests(unittest.TestCase):
         with self.cd('..'):
             self.assertEqual(interpret_argument(None, 'b/p1/p2'),
                              ('b', 'p1.p2'))
+
+    def test_pep420_namespace_package_is_omitted_from_module_paths(self):
+        if not _python33:
+            return
+        with self.cd('p1'):
+            os.unlink('__init__.py')
+        sys.path.append(self.path())
+        __import__('p1.p2')
+        d = dict(list_module_paths())
+        assert 'p1' not in d
+        assert d['p1.p2'] == self.path('p1', 'p2', '__init__.py')
 
 
 class RunnerTests(unittest.TestCase):
