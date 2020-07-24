@@ -1,7 +1,5 @@
 import ctypes
-import re
 import time
-from keyword import iskeyword
 from os import listdir, read, stat, strerror
 from os.path import dirname, isdir, join
 from struct import calcsize, unpack
@@ -14,8 +12,6 @@ IN_DELETE_SELF = 0x00000400
 IN_MOVE_SELF =   0x00000800
 MASK = IN_CLOSE_WRITE | IN_MOVED_TO | IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF
 _libc = None
-
-identifier_re_match = re.compile('[A-Za-z_][A-Za-z0-9_]*').match
 
 def _setup_libc():
     global _libc
@@ -56,9 +52,6 @@ class Filesystem(object):
     def fileno(self):
         return self.fd
 
-    def search_directory(self, path):
-        pass
-
     def list(self, directory):
         listing = self.listings.get(directory)
         if listing is None:
@@ -89,16 +82,6 @@ class Filesystem(object):
                 continue
             changes.append((directory, name))
         return changes
-
-def module_name_of(filename):
-    if filename.endswith('.py'):
-        base = filename[:-3]
-        if is_identifier(base):
-            return base
-    return None
-
-def is_identifier(name):
-    return identifier_re_match(name) and not iskeyword(name)
 
 def is_interesting(name):
     return not (name.startswith('.') or name.endswith('~'))

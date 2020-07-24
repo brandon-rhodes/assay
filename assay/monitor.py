@@ -150,7 +150,3 @@ def runner_coroutine(arguments, workers, reporter, paths_under_test):
             worker.pop()
 
     reporter.summarize()
-
-def install_import_path(path):
-    sys.modules.insert(0, path)
-

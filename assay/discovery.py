@@ -8,18 +8,6 @@ from .importation import get_directory_of, import_modules, list_module_paths
 
 matches_dot_py = re.compile(r'[A-Za-z_][A-Za-z_0-9]*\.py$').match
 
-def paths_and_modules(worker, names):
-    """Return paths and modules for each name on the command line.
-
-    Each name on the Assay command line can specify one of three things:
-    a directory that contains .py files, the name of one particular .py
-    file, or the name of a package that Python can import.  For every
-    name provided in `names` this routine either reports an error to the
-    user, or else yields a tuple (path, prefix) that will allow Python
-    to import all of the Python files beneath the given name.
-
-    """
-
 def interpret_argument(worker, name):
     """
 
@@ -66,13 +54,6 @@ def search_argument(import_directory, import_name):
             names.append(import_name + '.' + module_name)
     return names
 
-def insert_path_and_search_package_or_module(path, name):
-    sys.path.insert(0, path)
-    return search_package_or_module(name)
-
-def search_package_or_module(name):
-    pass #import_module
-
 def _discover_enclosing_packages(directory, names):
     """Find the top-level directory surrounding a package or sub-package."""
     was_absolute = directory.startswith(os.sep)
@@ -94,9 +75,6 @@ def _discover_enclosing_packages(directory, names):
 
 def is_package(directory):
     return os.path.isfile(os.path.join(directory, '__init__.py'))
-
-def is_dot_py(name):
-    return matches_dot_py(name) and not iskeyword(name[:-3])
 
 def is_identifier(name):
     return re.match('[A-Za-z_][A-Za-z0-9_]*', name) and not iskeyword(name)
