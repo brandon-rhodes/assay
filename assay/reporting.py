@@ -20,6 +20,8 @@ help_message = """
  [?] Help (this summary)
 """  # Future: [m] Pipe all errors to more(1) or else your custom $PAGER
 
+color = "--nocolor" not in sys.argv[1:] and "-c" not in sys.argv[1:]
+
 class BatchReporter(object):
     def __init__(self, write_callback):
         self.write_callback = write_callback
@@ -27,10 +29,14 @@ class BatchReporter(object):
         self.tests = 0
         self.t0 = time()
 
-    def report_result(self, result):
+    def report_result(self, result, verbose=False):
         self.tests += 1
-        if result == '.':
-            self.write_callback('.')
+        if result[0] == '.':
+            if verbose:
+                self.write_callback("{:.<72s} {}\n".format(
+                    (result[1] +'(' + result[2] + ')'), green("[ OK ]")))
+            else:
+                self.write_callback('.')
         else:
             self.errors += 1
             self.write_callback(pretty_format_error(*result))
@@ -63,8 +69,11 @@ class InteractiveReporter(object):
             s = s[i+1:]
         self.column += len(s) - s.count('\033') // 2 * 11
 
-    def report_result(self, result):
-        is_success = (result == '.')
+    def report_result(self, result, verbose=None):
+        if verbose:
+            raise NotImplementedError(
+                "no verbose flag for interactive reporter")
+        is_success = (result[0] == '.')
         letter = '.' if is_success else result[0]
         self.letters.append(letter)
         if not self.errors:
@@ -166,17 +175,18 @@ def pretty_format_error(character, name, message, frames, out='', err=''):
 
     return '\n'.join(lines)
 
+
 def black(text): # ';47' does bg color
-    return '\033[1;30m' + str(text) + '\033[0m'
+    return '\033[1;30m' + str(text) + '\033[0m' if color else str(text)
 
 def red(text):
-    return '\033[1;31m' + str(text) + '\033[0m'
+    return '\033[1;31m' + str(text) + '\033[0m' if color else str(text)
 
 def green(text):
-    return '\033[1;32m' + str(text) + '\033[0m'
+    return '\033[1;32m' + str(text) + '\033[0m' if color else str(text)
 
 def yellow(text):
-    return '\033[1;33m' + str(text) + '\033[0m'
+    return '\033[1;33m' + str(text) + '\033[0m' if color else str(text)
 
 def blue(text):
-    return '\033[1;35m' + str(text) + '\033[0m'
+    return '\033[1;35m' + str(text) + '\033[0m' if color else str(text)

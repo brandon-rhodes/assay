@@ -64,6 +64,13 @@ def fix3():
 def test_fix4(test_exc):
     pass
 
+twofix1 = [1, 2]
+twofix2 = [3, 4]
+
+def test_twofix(twofix1, twofix2):
+    assert twofix1 in [1, 2]
+    assert twofix2 in [3, 4]
+
 def test_syntax_error():
     eval('1+2!3')
 

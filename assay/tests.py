@@ -6,7 +6,9 @@ To run these tests, simply invoke::
 
 """
 import os
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -148,7 +150,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
-        self.assertEqual(len(value), 24)
+        self.assertEqual(len(value), 28)
 
     def test_runner_on_syntax_error(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
@@ -211,7 +213,7 @@ class ErrorMessageTests(unittest.TestCase):
         base = code.co_firstlineno
         result = list(run_test(samples, test))
         for item in result:
-            if isinstance(item, tuple):
+            if isinstance(item, tuple) and len(item) > 3:
                 frames = item[3]
                 for i in range(len(frames)):
                     filename, lineno, name, line = frames[i]
@@ -222,7 +224,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_passing(self):
         result = self.execute(samples.test_passing)
         self.assertEqual(result, [
-            '.',
+            ('.', 'test_passing', '')
             ])
 
     def test_plain_assertion(self):
@@ -315,18 +317,18 @@ class ErrorMessageTests(unittest.TestCase):
     def test_fix2(self):
         result = self.execute(samples.test_fix2)
         self.assertEqual(result, [
-            '.',
-            '.',
+            ('.', 'test_fix2', "0"),
+            ('.', 'test_fix2', "1"),
             ('E', 'AssertionError', '2\n      is not != 2', [
                 ('assay/samples.py', 1, 'test_fix2(2)', 'assert fix2 != 2'),
                 ]),
-            '.',
+            ('.', 'test_fix2', "3"),
             ])
 
     def test_fix3(self):
         result = self.execute(samples.test_fix3)
         self.assertEqual(result, [
-            '.',
+            ('.', 'test_fix3', "0"),
             ('E', 'AssertionError', '1\n      is not != 1', [
                 ('assay/samples.py', 1, 'test_fix3(1)', 'assert fix3 != 1'),
                 ]),
@@ -358,13 +360,13 @@ class ErrorMessageTests(unittest.TestCase):
     def test_raises_with_correct_exception(self):
         result = self.execute(samples.test_raises1)
         self.assertEqual(result, [
-            '.',
+            ('.', 'test_raises1', "")
             ])
 
     def test_raises_with_correct_exception_and_message(self):
         result = self.execute(samples.test_raises2)
         self.assertEqual(result, [
-            '.',
+            ('.', 'test_raises2', "")
             ])
 
     def test_raises_with_wrong_exception(self):
@@ -478,6 +480,45 @@ class ImproveOrderTests(unittest.TestCase):
             ]
         self.assertEqual(improve_order(events),
                          ['A', 'X', 'B', 'C', 'Y', 'Z', 'D', 'E'])
+
+
+class BatchTest(unittest.TestCase):
+
+    def runmain(self, args):
+        try:
+            output = subprocess.check_output(
+                [sys.executable, "-m", "assay"] + args.split(" ")
+                 + [samples.__file__.rstrip("c")])
+        except subprocess.CalledProcessError as c:
+            return c.returncode, str(c.output)
+        return 0, str(output)
+
+    def test_batch(self):
+        for arg in ['-b', '--batch']:
+            exitcode, out = self.runmain(arg)
+            self.assertEqual(exitcode, 1)
+            self.assertTrue("17 of 28 tests failed" in out.splitlines()[-1])
+
+    def test_batch_verbose(self):
+        for arg in ["-v", "--verbose"]:
+            exitcode, out = self.runmain('-b ' + arg)
+            self.assertEqual(exitcode, 1)
+            self.assertTrue("17 of 28 tests failed" in out.splitlines()[-1])
+            self.assertTrue(re.search(r"test_passing.*OK", out)
+                            is not None)
+            self.assertTrue(re.search(r"test_twofix\(1, 3\).*OK", out)
+                            is not None)
+        exitcode, out = self.runmain('-v')
+        self.assertEqual(exitcode, 64)
+        exitcode, out = self.runmain('--verbose')
+        self.assertEqual(exitcode, 64)
+
+    def test_batch_color(self):
+        exitcode, out = self.runmain('-b -v')
+        self.assertTrue(re.search("\\[1;3.m", out) is not None)
+        for arg in ['-c', '--nocolor']:
+            exitcode, out = self.runmain('-b -v ' + arg)
+            self.assertTrue(re.search("\\[1;3.m", out) is None)
 
 
 if __name__ == '__main__':

@@ -31,7 +31,7 @@ def write(string):
     """Send `string` immediately to standard output, without buffering."""
     os.write(stdout_fd, string.encode('ascii'))
 
-def main_loop(arguments, batch_mode):
+def main_loop(arguments, batch_mode, verbose=False):
     """Run and report on tests while also letting the user type commands."""
 
     main_process_paths = set(path for name, path in list_module_paths())
@@ -58,7 +58,7 @@ def main_loop(arguments, batch_mode):
         paths_under_test = set()
         reporter = reporter_class(write)
         runner = runner_coroutine(arguments, workers, reporter,
-                                  paths_under_test)
+                                  paths_under_test, verbose)
         next(runner)
 
         for source, flags in poller.events():
@@ -99,7 +99,7 @@ def main_loop(arguments, batch_mode):
                 paths_under_test = set()
                 reporter = reporter_class(write)
                 runner = runner_coroutine(arguments, workers, reporter,
-                                          paths_under_test)
+                                          paths_under_test, verbose)
                 next(runner)
 
             # import_order = improve_order(import_order, dangers)
@@ -110,7 +110,8 @@ def main_loop(arguments, batch_mode):
         for worker in workers:
             worker.close()
 
-def runner_coroutine(arguments, workers, reporter, paths_under_test):
+def runner_coroutine(arguments, workers, reporter, paths_under_test,
+                     verbose=False):
     worker = workers[0]
     running_workers = set()
     names = []
@@ -143,7 +144,7 @@ def runner_coroutine(arguments, workers, reporter, paths_under_test):
             if result is StopIteration:
                 give_work_to(worker)
             else:
-                reporter.report_result(result)
+                reporter.report_result(result, verbose)
 
     finally:
         for worker in workers:

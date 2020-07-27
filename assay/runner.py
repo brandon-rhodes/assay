@@ -141,7 +141,7 @@ def run_test_with_arguments(test, args):
         frames = traceback_frames()
         return 'E', type(e).__name__, str(e), add_args(frames, args)
     else:
-        return '.'
+        return '.', test.__name__, ", ".join([str(a) for a in args])
 
     if (not message) and function and not hasattr(function, 'assay_rewritten'):
         rewrite_asserts_in(function)
