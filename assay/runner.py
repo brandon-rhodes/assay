@@ -6,6 +6,7 @@ import assay
 import inspect
 import linecache
 import os
+import re
 import sys
 from types import FunctionType
 from .assertion import get_code, search_for_function, rewrite_asserts_in
@@ -43,8 +44,9 @@ def capture_stdout_stderr(generator, *args):
         sys.stdout = oldout
         sys.stderr = olderr
 
-def run_tests_of(module_name):
-    """Run all tests discovered inside of a module."""
+
+def run_tests_of(module_name, patterns=None):
+    """Run all tests discovered and not deselected inside of a module."""
     try:
         module = import_module(module_name)
     except Exception as e:
@@ -54,9 +56,14 @@ def run_tests_of(module_name):
         yield 'F', e.__class__.__name__, str(e), frames
         return
 
+    yespatterns, nopatterns = patterns or (None, None)
     tests = sorted((k, v) for k, v in module.__dict__.items()
                    if k.startswith('test_') and isinstance(v, FunctionType)
-                   and getattr(v, '__module__', '') == module_name)
+                   and getattr(v, '__module__', '') == module_name
+                   and (not yespatterns
+                        or any([re.search(p, k) for p in yespatterns]))
+                   and (not nopatterns
+                        or not any([re.search(p, k) for p in nopatterns])))
 
     for name, test in tests:
         for result in run_test(module, test):

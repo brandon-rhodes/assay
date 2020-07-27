@@ -196,6 +196,33 @@ class RunnerTests(unittest.TestCase):
               (f2.name, 2, '<module>', 'dict()["key"]')]),
             ])
 
+    def test_runner_on_select_pattern(self):
+        value = list(run_tests_of('assay.samples', patterns=[["passing"], None]))
+        self.assertEqual(value, [
+            ('.', 'test_passing', ''),
+            ])
+
+    def test_runner_on_deselect_pattern(self):
+        value = list(run_tests_of('assay.samples', patterns=[None, ["fix"]]))
+        self.assertEqual(len(value), 14)
+        for v in value:
+            if len(v) == 3:
+                self.assertFalse("fix" in v[1])
+            else:
+                self.assertFalse("fix" in v[3][0][2])
+
+    def test_runner_on_regex_patterns(self):
+        """Collect test_assert[01] and test_assert_tab but not test_assert2"""
+        value = list(run_tests_of(
+            'assay.samples', patterns=[[r"assert(\d|_tab)"], ["assert2"]]))
+        self.assertEqual(len(value), 3)
+        names = [v[3][0][2] for v in value]
+        self.assertTrue('test_assert0' in names)
+        self.assertTrue('test_assert1' in names)
+        self.assertTrue('test_assert_tab' in names)
+        self.assertTrue('test_assert2' not in names)
+
+
 
 class ErrorMessageTests(unittest.TestCase):
 
@@ -512,6 +539,26 @@ class BatchTest(unittest.TestCase):
         self.assertEqual(exitcode, 64)
         exitcode, out = self.runmain('--verbose')
         self.assertEqual(exitcode, 64)
+
+    def test_batch_pattern(self):
+        for arg in ['-k', '--pattern']:
+            exitcode, out = self.runmain(
+                '-b -v ' + arg + ' test_pa.*ing')
+            self.assertEqual(exitcode, 0)
+            self.assertTrue("All 1 tests passed" in out.splitlines()[-1])
+            self.assertTrue(re.search("test_passing.*OK", out)
+                            is not None)
+
+    def test_batch_deselect(self):
+        for arg in ['+k', '--deselect']:
+            exitcode, out = self.runmain(
+                '-b -v ' + arg  + r' test_passing|test_assert\d')
+            self.assertEqual(exitcode, 1)
+            self.assertTrue("14 of 24 tests failed" in out.splitlines()[-1])
+            self.assertTrue(re.search("test_passing.*OK", out)
+                            is None)
+            self.assertTrue(re.search("test_assert\d.*OK", out)
+                            is None)
 
     def test_batch_color(self):
         exitcode, out = self.runmain('-b -v')

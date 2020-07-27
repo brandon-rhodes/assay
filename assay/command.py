@@ -10,12 +10,16 @@ from . import monitor, unix
 def main():
     os.environ['PYTHONDONTWRITEBYTECODE'] = 'please'
     sys.dont_write_bytecode = True
-    parser = argparse.ArgumentParser(prog='assay')
+    parser = argparse.ArgumentParser(prog='assay', prefix_chars='-+')
     parser.description = 'Fast testing framework'
     parser.add_argument('name', nargs='+',
         help='directory, package, or module to test')
     parser.add_argument('-b', '--batch', action='store_true',
         help='run tests once, then exit with success or failure')
+    parser.add_argument('--pattern', '-k', action='append', metavar='REGEX',
+        help='only run test functions matching the regular expression REGEX')
+    parser.add_argument('--deselect', '+k', action='append', metavar='REGEX',
+        help='do not run test functions matching the regular expression REGEX')
     parser.add_argument('-v', '--verbose', action='store_true',
         help='be verbose in batch mode: print test names being tested')
     #checked on sys.argv directly. Only to allow and include it in helptext
@@ -29,6 +33,7 @@ def main():
     try:
         with unix.configure_tty() as isatty:
             monitor.main_loop(args.name, args.batch or not isatty,
+                              patterns=[args.pattern, args.deselect],
                               verbose=args.verbose)
     except monitor.Restart:
         print()

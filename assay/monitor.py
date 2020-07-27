@@ -31,7 +31,7 @@ def write(string):
     """Send `string` immediately to standard output, without buffering."""
     os.write(stdout_fd, string.encode('ascii'))
 
-def main_loop(arguments, batch_mode, verbose=False):
+def main_loop(arguments, batch_mode, patterns=None, verbose=False):
     """Run and report on tests while also letting the user type commands."""
 
     main_process_paths = set(path for name, path in list_module_paths())
@@ -58,7 +58,7 @@ def main_loop(arguments, batch_mode, verbose=False):
         paths_under_test = set()
         reporter = reporter_class(write)
         runner = runner_coroutine(arguments, workers, reporter,
-                                  paths_under_test, verbose)
+                                  paths_under_test, patterns, verbose)
         next(runner)
 
         for source, flags in poller.events():
@@ -99,7 +99,7 @@ def main_loop(arguments, batch_mode, verbose=False):
                 paths_under_test = set()
                 reporter = reporter_class(write)
                 runner = runner_coroutine(arguments, workers, reporter,
-                                          paths_under_test, verbose)
+                                          paths_under_test, patterns, verbose)
                 next(runner)
 
             # import_order = improve_order(import_order, dangers)
@@ -111,7 +111,7 @@ def main_loop(arguments, batch_mode, verbose=False):
             worker.close()
 
 def runner_coroutine(arguments, workers, reporter, paths_under_test,
-                     verbose=False):
+                     patterns=None, verbose=False):
     worker = workers[0]
     running_workers = set()
     names = []
@@ -124,7 +124,7 @@ def runner_coroutine(arguments, workers, reporter, paths_under_test,
     def give_work_to(worker):
         if names:
             name = names.pop()
-            worker.start(capture_stdout_stderr, run_tests_of, name)
+            worker.start(capture_stdout_stderr, run_tests_of, name, patterns)
         else:
             running_workers.remove(worker)
             paths = [path for name, path in worker.call(list_module_paths)]
