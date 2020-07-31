@@ -27,4 +27,5 @@ def main():
         os.execvp(executable, [executable, '-m', 'assay'] + sys.argv[1:])
     except KeyboardInterrupt:
         sys.stdout.write(' KeyboardInterrupt\n')
-
+    except BrokenPipeError:
+        return
