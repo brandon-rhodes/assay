@@ -7,6 +7,11 @@ import os
 import sys
 from . import monitor, unix
 
+try:
+    BrokenPipeError
+except NameError:
+    BrokenPipeError = ()  # do not bother catching it under Python 2
+
 def main():
     os.environ['PYTHONDONTWRITEBYTECODE'] = 'please'
     sys.dont_write_bytecode = True
