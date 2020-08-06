@@ -43,7 +43,9 @@ def cpu_count():
     """Return the number of CPUs on the system."""
     if os.path.exists('/proc/cpuinfo'):
         with open('/proc/cpuinfo') as f:
-            return f.read().count('\nbogomips')
+            count = f.read().count('\nbogomips')
+        if count:
+            return count
     return 2
 
 def discard_input(fileobj, bufsize):
