@@ -3,6 +3,7 @@
 import errno
 import fcntl
 import os
+import re
 import select
 import signal
 import sys
@@ -43,7 +44,7 @@ def cpu_count():
     """Return the number of CPUs on the system."""
     if os.path.exists('/proc/cpuinfo'):
         with open('/proc/cpuinfo') as f:
-            count = f.read().count('\nbogomips')
+            count = len(re.findall(r'^processor\s*:', f.read(), re.M))
         if count:
             return count
     return 2
