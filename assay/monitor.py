@@ -29,7 +29,10 @@ def read_keystrokes():
 
 def write(string):
     """Send `string` immediately to standard output, without buffering."""
-    os.write(stdout_fd, string.encode('ascii'))
+    # TODO: Write a test which exercises this choice of encoding; this
+    # used to be "ascii" but raised an exception if the source had fancy
+    # characters.
+    os.write(stdout_fd, string.encode('utf-8'))
 
 def main_loop(arguments, batch_mode):
     """Run and report on tests while also letting the user type commands."""
