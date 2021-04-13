@@ -19,6 +19,12 @@ def sub_assert2():
 def test_assert2():
     sub_assert2()
 
+def test_assert3():
+    f = int
+    n = f()+0+1+2+3+4+5+6+7+8+9+0+1+2+3+4+5+6+7+8+9+0+1+2+3+4+5+6+7+8+9
+    n += f()+0+1+2+3+4+5+6+7+8+9+0+1+2+3+4+5+6+7+8+9+0+1+2+3+4+5+6+7+8+9
+    assert n == 100
+
 def test_assert_tab():
     assert	1+1 == 3
 

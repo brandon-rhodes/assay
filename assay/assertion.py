@@ -78,7 +78,6 @@ if _python_version <= (2,6):
         op.load_const, b'%%',   # stack: ... op1 op2 function
         op.rot_three,           # stack: ... function op1 op2
         op.call_function, 2, 0, # stack: ... return_value
-        op.nop, op.nop, op.nop, op.nop, op.nop, op.nop,
         op.pop_top,             # stack: ...
         ])
 
@@ -96,13 +95,13 @@ elif _python_version <= (3,5):
         op.rot_three,           # stack: ... function op1 op2
         op.call_function, 2, 0, # stack: ... return_value
         op.pop_top,             # stack: ...
-        op.nop, op.nop, op.nop, op.nop,
         ])
 
 else:
 
     assert_pattern_text = assemble_pattern([
         op.compare_op, b'(.)',
+        b'(?:', op.extended_arg, b'.)?',
         op.pop_jump_if_true, b'.',
         op.load_global, b'(.)',
         op.raise_varargs, 1,
@@ -130,6 +129,9 @@ def rewrite_asserts_in(function):
             code = replacement.replace(b'%%', chr(lsb) + chr(msb))
         else:
             code = replacement.replace(b'%%', chr(offset + ord(compare_op)))
+        short = len(match.group(0)) - len(code)
+        if short:
+            code += chr(op.nop) * short
         return code
 
     c = get_code(function)
