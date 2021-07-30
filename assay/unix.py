@@ -70,7 +70,7 @@ def kill_dash_9(pid):
     os.kill(pid, signal.SIGKILL)
 
 class EPoll(object):
-    """File descriptor polling object that returns objects, not integers."""
+    """Linux-based file descriptor polling object that returns objects, not integers."""
 
     def __init__(self):
         self.fdmap = {}
@@ -105,7 +105,7 @@ class EPoll(object):
 
 
 class KQueue(object):
-    """File descriptor polling object that returns objects, not integers."""
+    """BSD-based file descriptor polling object that returns objects, not integers."""
 
     def __init__(self):
         self.fdmap = {}
@@ -119,7 +119,7 @@ class KQueue(object):
             select.KQ_FILTER_READ,
             flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE,
         )]
-        self.poller.control(event, max_events=0)
+        self.poller.control(event, 0)
 
     def unregister(self, obj):
         fd = obj.fileno()
@@ -129,14 +129,21 @@ class KQueue(object):
             select.KQ_FILTER_READ,
             select.KQ_EV_DELETE
         )]
-        self.poller.control(event, max_events=0)
+        self.poller.control(event, 0)
 
     def events(self):
         while True:
             try:
-                for event in self.poller.control(None, max_events=0):
+                for event in self.poller.control(None, 10):
                     yield self.fdmap[event.ident], event.flags
             except IOError as e:
                 if e.errno != errno.EINTR:
                     raise
         self.poller.close()
+
+def poller():
+    """Get the platform-specific poller"""
+    if sys.platform == "darwin":
+        return KQueue()
+
+    return EPoll()

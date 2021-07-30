@@ -39,7 +39,7 @@ def main_loop(arguments, batch_mode):
 
     main_process_paths = set(path for name, path in list_module_paths())
 
-    poller = unix.EPoll()
+    poller = unix.poller()
     if batch_mode:
         file_watcher = None
         reporter_class = BatchReporter
