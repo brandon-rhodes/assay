@@ -3,6 +3,7 @@
 import os
 import sys
 from . import unix
+from .fixes import _accumulating_reader
 from types import GeneratorType
 
 _python3 = sys.version_info >= (3,)
@@ -74,7 +75,7 @@ class Worker(object):
         """Run a function in the worker process and return its result."""
         pickle.dump((function, args, kw), self.to_worker)
         self.to_worker.flush()
-        return pickle.load(self.from_worker)
+        return pickle.load(_accumulating_reader(self.from_worker))
 
     def start(self, generator, *args, **kw):
         """Start a generator in the worker process."""
@@ -83,7 +84,7 @@ class Worker(object):
 
     def next(self):
         """Return the next item from the generator given to `start()`."""
-        return pickle.load(self.from_worker)
+        return pickle.load(_accumulating_reader(self.from_worker))
 
     def fileno(self):
         """Return the incoming file descriptor, for `epoll()` objects."""
@@ -116,7 +117,7 @@ def worker_process(from_parent, to_parent, sync_to_parent):
     from_parent = os.fdopen(from_parent, 'rb')
 
     while True:
-        function, args, kw = pickle.load(from_parent)
+        function, args, kw = pickle.load(_accumulating_reader(from_parent))
         result = function(*args, **kw)
         if function is os.fork:
             if result:

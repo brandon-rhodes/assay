@@ -15,7 +15,10 @@ from .compatibility import get_code, unittest
 from .discovery import interpret_argument
 from .importation import improve_order, list_module_paths
 from .runner import run_tests_of, run_test
+from .samples import mul
+from .worker import Worker
 
+_python3 = sys.version_info >= (3,)
 _python33 = sys.version_info >= (3, 3)
 _python38 = sys.version_info >= (3, 8)
 
@@ -487,6 +490,45 @@ class ImproveOrderTests(unittest.TestCase):
         self.assertEqual(improve_order(events),
                          ['A', 'X', 'B', 'C', 'Y', 'Z', 'D', 'E'])
 
+PRETEND_PIPE_LIMIT = 256
+
+class BlockReader(object):
+    """Challenge: can we survive a pipe that splits long data into blocks?"""
+    def __init__(self, file):
+        self.file = file
+        self.close = file.close
+
+    def read(self, n=-1):
+        n = min(n, PRETEND_PIPE_LIMIT)
+        return self.file.read(n)
+
+    def readline(self, n=-1):
+        raise NotImplementedError()
+
+class WorkerTests(unittest.TestCase):
+    def test_worker_can_call_simple_function(self):
+        w = Worker()
+        try:
+            answer = w.call(mul, 3, 4)
+            self.assertEqual(answer, 12)
+        finally:
+            w.close()
+
+    def test_worker_survive_narrow_pipe(self):
+        # This simulates a difficult-to-reproduce problem: until we
+        # enhanced the Worker, on Python 3 on GitHub Actions the main
+        # process would sometimes raise "_pickle.UnpicklingError: pickle
+        # data was truncated".
+        if not _python3:
+            return
+        n = 5 * PRETEND_PIPE_LIMIT
+        w = Worker()
+        w.from_worker = BlockReader(w.from_worker)
+        try:
+            answer = w.call(mul, 'a', n)
+        finally:
+            w.close()
+        self.assertEqual(answer, 'a' * n)
 
 if __name__ == '__main__':
     unittest.main()

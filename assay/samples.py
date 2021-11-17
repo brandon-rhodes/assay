@@ -4,6 +4,9 @@ from assay import assert_raises
 
 flags = set()
 
+def mul(a, b):
+    return a * b
+
 def test_passing():
     pass
 
