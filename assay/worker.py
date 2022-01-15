@@ -109,6 +109,15 @@ class Worker(object):
 def worker_process(from_parent, to_parent, sync_to_parent):
     """Run functions piped to us from the parent process.
 
+    This is the entire control loop of an assay worker process, which is
+    launched when this module is run with "-m" by the "Worker" class.
+    It listens to a pipe over which it is given a series of functions to
+    invoke, and sends back their return values.  Sometimes the function
+    is `fork()`, in which case a worker child process is launched; in
+    that case, the child takes control of the conversation, with the
+    parent waiting idle and only resuming control of the conversation
+    once the child is finished.
+
     Both `to_parent` and `from_parent` should be integer file
     descriptors of the pipes connecting us to the parent process.
 
