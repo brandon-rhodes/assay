@@ -63,7 +63,9 @@ def discard_input(fileobj, bufsize):
     except OSError:
         pass
     fcntl.fcntl(fd, fcntl.F_SETFL, 0)
-    return os.fdopen(os.dup(fd), fileobj.mode, bufsize)
+    new_fd = os.dup(fd)
+    fileobj.close()
+    return os.fdopen(new_fd, fileobj.mode, bufsize)
 
 def kill_dash_9(pid):
     """Kill a process with a signal that cannot be caught or ignored."""
