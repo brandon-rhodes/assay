@@ -97,7 +97,7 @@ elif _python_version <= (3,5):
         op.pop_top,             # stack: ...
         ])
 
-else:
+elif _python_version < (3,9):
 
     assert_pattern_text = assemble_pattern([
         op.compare_op, b'(.)',
@@ -105,14 +105,31 @@ else:
         op.pop_jump_if_true, b'.',
         op.load_global, b'(.)',
         op.raise_varargs, 1,
-        ])
+    ])
 
     replacement = assemble_replacement([
         op.load_const, b'%%',   # stack: ... op1 op2 function
         op.rot_three, 0,        # stack: ... function op1 op2
         op.call_function, 2,    # stack: ... return_value
         op.pop_top, 0,          # stack: ...
-        ])
+    ])
+
+else:
+
+    assert_pattern_text = assemble_pattern([
+        op.compare_op, b'(.)',
+        b'(?:', op.extended_arg, b'.)?',
+        op.pop_jump_if_true, b'.',
+        op.load_assertion_error, b'.',
+        op.raise_varargs, 1,
+    ])
+
+    replacement = assemble_replacement([
+        op.load_const, b'%%',   # stack: ... op1 op2 function
+        op.rot_three, 0,        # stack: ... function op1 op2
+        op.call_function, 2,    # stack: ... return_value
+        op.pop_top, 0,          # stack: ...
+    ])
 
 # Note that "re.S" is crucial when compiling this pattern, as a byte we
 # are trying to match with "." might happen to have the numeric value of
@@ -122,7 +139,8 @@ assert_pattern = re.compile(assert_pattern_text, re.S)
 def rewrite_asserts_in(function):
 
     def replace(match):
-        match.group(2) # TODO: make sure this is the right symbol
+        # TODO: if there's a second group in the match, should we verify
+        # that it really loads `AssertionError`?
         compare_op = match.group(1)
         if _python_version <= (3,5):
             msb, lsb = divmod(offset + ord(compare_op), 256)
