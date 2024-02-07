@@ -3,12 +3,12 @@ name: Test
 on: [push]
 
 jobs:
-  build:
+  test-recent-pythons:
 
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
 
     steps:
     - uses: actions/checkout@v2
@@ -16,3 +16,17 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - run: python -m assay.tests -v
+
+  test-older-pythons:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: [python2, python3]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install
+      run: |
+        python2 -m assay.tests -v
+        python3 -m assay.tests -v
