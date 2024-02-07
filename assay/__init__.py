@@ -8,6 +8,9 @@
 """
 import re
 
+class AssertRaisesError(Exception):
+    """A test failure caught by assert_raises()."""
+
 class assert_raises(object):
     """Context manager that verifies the exception its code block raises."""
 
@@ -21,14 +24,16 @@ class assert_raises(object):
     def __exit__(self, exception_type, exception, tb):
         if exception_type is None:
             complaint = '{0} not raised'.format(self.expected_type.__name__)
-            raise AssertionError(complaint)
+            raise AssertRaisesError(complaint)
         if not issubclass(exception_type, self.expected_type):
             return False
         self.exception = exception
         pattern = self.pattern
         if (pattern is not None) and not re.search(pattern, str(exception)):
             complaint = 'cannot find pattern {0!r} in {1!r}'
-            raise AssertionError(complaint.format(pattern, str(exception)))
+            e = AssertRaisesError(complaint.format(pattern, str(exception)))
+            e.original_traceback = tb
+            raise e
         return True
 
 __all__ = ['assert_raises']

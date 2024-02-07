@@ -390,7 +390,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_raises_with_wrong_message(self):
         result = self.execute(samples.test_raises4)
         self.assertEqual(result, [
-            ('E', 'AssertionError',
+            ('E', 'AssertRaisesError',
              "cannot find pattern 'one message' in 'another message'", [
                  ('assay/samples.py', 2, 'test_raises4',
                   "raise ValueError('another message')"),

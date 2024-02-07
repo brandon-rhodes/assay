@@ -130,6 +130,9 @@ def run_test_with_arguments(test, args):
     """Return the result of invoking a test with the given arguments."""
     try:
         test(*args)
+    except assay.AssertRaisesError as e:
+        frames = traceback_frames(tb=e.original_traceback)
+        return 'E', type(e).__name__, str(e), add_args(frames, args)
     except AssertionError as e:
         type_name = type(e).__name__
         message = str(e)
@@ -165,7 +168,7 @@ def run_test_with_arguments(test, args):
 
     return 'E', type_name, message, add_args(frames, args)
 
-def traceback_frames(return_top_frame=False):
+def traceback_frames(tb=None, return_top_frame=False):
     """Return traceback frames for code outside of this file.
 
     The result is a list of tuples in the usual style of extract_tb(tb),
@@ -173,14 +176,16 @@ def traceback_frames(return_top_frame=False):
     `return_top_frame` is true, a frame object is also returned.
 
     """
-    etype, e, tb = sys.exc_info()
+    e = None
+    if tb is None:
+        etype, e, tb = sys.exc_info()
     tuples = []
     while tb is not None:
         frame = tb.tb_frame
         code = frame.f_code
         filename = code.co_filename
         if not _is_noisy_filename(filename):
-            lineno = frame.f_lineno
+            lineno = tb.tb_lineno
             line = linecache.getline(filename, lineno, frame.f_globals)
             line = line.strip() if line else None
             tuples.append((relativize(filename), lineno, code.co_name, line))
