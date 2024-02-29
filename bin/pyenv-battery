@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# These versions aren’t specially hand-picked or anything; they just
+# happen to be what I already had on my machine.
+
+VERSIONS="2.7.3 3.7.3 3.8.1 3.9.10 3.10.1 3.11.7 3.12.1"
+
+set -e
+
+if [ "$1" = "install" ]
+then
+    exec pyenv install --skip-existing $VERSIONS
+else
+    for v in $VERSIONS
+    do
+        echo
+        echo '********  Python version' $v '  ********'
+        echo
+        PYENV_VERSION=$v pyenv exec python -m assay.tests -v
+    done
+fi
