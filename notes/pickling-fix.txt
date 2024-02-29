@@ -1,0 +1,101 @@
+
+The `_accumulating_reader` in fixes.py is inspired by the investigation
+that the Mercurial folks thankfully did of the same problem with the
+Python 3 `pickle` module — and which avoided my having to make the same
+discovery over again.
+
+Their investigation was summarized at two URLs that are now gone:
+
+https://phab.mercurial-scm.org/rHG12491abf93bd87b057cb6826e36606afa1cee88a
+https://phab.mercurial-scm.org/rHGc2bf211c74bf97be0a24e2446b75867cb4f588ee
+
+So here are those commit descriptions, snagged from archive.org.
+
+------------------------------------------------------------------------
+
+worker: manually buffer reads from pickle stream
+12491abf93bd
+
+worker: manually buffer reads from pickle stream
+
+My previous fix (D8051, cb52e619c99e, which added Python's built-in buffering
+to the pickle stream) has the problem that the selector will ignore the buffer.
+When multiple pickled objects are read from the pipe into the buffer at once,
+only one object will be loaded.
+
+This can repeat until the buffer is full and delays the processing of completed
+items until the worker exits, at which point the pipe is always considered
+readable and all remaining items are processed.
+
+This changeset reverts D8051, removing the buffer again. Instead, on Python 3
+only, we use a wrapper to modify the "read" provided to the Unpickler to behave
+more like a buffered read. We never read more bytes from the pipe than the
+Unpickler requests, so the selector behaves as expected.
+
+Also add a test case for "pickle data was truncated" issue.
+
+worker: manually buffer reads from pickle stream
+
+My previous fix (D8051, cb52e619c99e, which added Python's built-in buffering
+to the pickle stream) has the problem that the selector will ignore the buffer.
+When multiple pickled objects are read from the pipe into the buffer at once,
+only one object will be loaded.
+
+This can repeat until the buffer is full and delays the processing of completed
+items until the worker exits, at which point the pipe is always considered
+readable and all remaining items are processed.
+
+This changeset reverts D8051, removing the buffer again. Instead, on Python 3
+only, we use a wrapper to modify the "read" provided to the Unpickler to behave
+more like a buffered read. We never read more bytes from the pipe than the
+Unpickler requests, so the selector behaves as expected.
+
+Also add a test case for "pickle data was truncated" issue.
+
+https://phab.mercurial-scm.org/D8051#119193
+
+Differential Revision: https://phab.mercurial-scm.org/D8076
+
+------------------------------------------------------------------------
+
+worker: don't expose readinto() on _blockingreader since pickle is picky
+c2bf211c74bf
+
+worker: don't expose readinto() on _blockingreader since pickle is picky
+
+The pickle module expects the input to be buffered and a whole
+object to be available when pickle.load() is called, which is not
+necessarily true when we send data from workers back to the parent
+process (i.e., it seems like a bad assumption for the pickle module
+to make). We added a workaround for that in
+https://phab.mercurial-scm.org/D8076, which made read() continue
+until all the requested bytes have been read.
+
+As we found out at work after a lot of investigation (I've spent the
+last two days on this), the native version of pickle.load() has
+started calling readinto() on the input since Python 3.8. That
+started being called in
+https://github.com/python/cpython/commit/91f4380cedbae32b49adbea2518014a5624c6523
+(and only by the C version of pickle.load())). Before that, it was
+only read() and readline() that were called. The problem with that
+was that readinto() on our _blockingreader was simply delegating
+to the underlying, *unbuffered* object. The symptom we saw was that
+hg fix started failing sometimes on Python 3.8 on Mac. It failed
+very relyable in some cases. I still haven't figured out under what
+circumstances it fails and I've been unable to reproduce it in test
+cases (I've tried writing larger amounts of data, using different
+numbers of workers, and making the formatters sleep). I have, however,
+been able to reproduce it 3-4 times on Linux, but then it stopped
+reproducing on the following few hundred attempts.
+
+To fix the problem, we can simply remove the implementation of
+readinto(), since the unpickler will then fall back to calling
+read(). The fallback was added a bit later, in
+https://github.com/python/cpython/commit/b19f7ecfa3adc6ba1544225317b9473649815b38. However,
+that commit also added checking that what read() returns is a
+bytes, so we also need to convert the bytearray we use into
+that. I was able to add a test for that failure at least.
+
+Differential Revision: https://phab.mercurial-scm.org/D8928
+
+------------------------------------------------------------------------

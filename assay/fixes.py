@@ -1,21 +1,12 @@
 """Workarounds for Python 3."""
 
 import sys
-_python3 = sys.version_info >= (3,)
 
-# We are extremely fortunate that Mercurial ran into this issue before
-# assay did, as they figured out both how to reproduce the problem and
-# how to fix it!
+# I'm fortunate that Mercurial ran into this issue before Assay did:
+# they figured out both how to reproduce the problem and how to fix it!
+# See `notes/pickling-fix.txt` in the Assay repository for details.
 
-# https://phab.mercurial-scm.org/rHG12491abf93bd87b057cb6826e36606afa1cee88a
-# https://phab.mercurial-scm.org/rHGc2bf211c74bf97be0a24e2446b75867cb4f588ee
-
-# We are less fortunate that Mercurial's license isn't compatible with
-# ours, as we must re-implement this rather than use their code.  But
-# requiring us to re-implement is, after all, their right under the
-# current copyright regime.
-
-if _python3:
+if sys.version_info[0] == 3:
     class _accumulating_reader:
         def __init__(self, pipe):
             self._read = pipe.read
@@ -37,7 +28,8 @@ if _python3:
             return b''.join(pieces)
 
         # Python 3.8 complains unless this method is present.
-        def readinto(): raise NotImplementedError()
+        if sys.version_info[1] == 8:
+            def readinto(): raise NotImplementedError()
 
 else:
     def _accumulating_reader(pipe):
