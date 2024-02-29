@@ -36,6 +36,9 @@ if _python3:
                 pieces.append(data)
             return b''.join(pieces)
 
+        # Python 3.8 complains unless this method is present.
+        def readinto(): raise NotImplementedError()
+
 else:
     def _accumulating_reader(pipe):
         return pipe
