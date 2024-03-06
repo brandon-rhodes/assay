@@ -151,7 +151,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
-        self.assertEqual(len(value), 25)
+        self.assertEqual(len(value), 31)
 
     def test_runner_on_syntax_error(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
@@ -397,6 +397,57 @@ class ErrorMessageTests(unittest.TestCase):
                  ]),
             ])
 
+    # The following tests verify that we intercept and correctly report
+    # failed results for all basic asserts in `opcode.cmp_op`:
+    # ('<', '<=', '==', '!=', '>', '>=')
+
+    def test_assert_lt(self):
+        result = self.execute(samples.test_lt)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '7\n       is not < 3', [
+                ('assay/samples.py', 1, 'test_lt', 'assert 3+4 < 1+2')
+            ]),
+        ])
+
+    def test_assert_le(self):
+        result = self.execute(samples.test_le)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '7\n      is not <= 3', [
+                ('assay/samples.py', 1, 'test_le', 'assert 3+4 <= 1+2')
+            ]),
+        ])
+
+    def test_assert_eq(self):
+        result = self.execute(samples.test_eq)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '3 != 7', [
+                ('assay/samples.py', 1, 'test_eq', 'assert 1+2 == 3+4')
+            ]),
+        ])
+
+    def test_assert_ne(self):
+        result = self.execute(samples.test_ne)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '3\n      is not != 3', [
+                ('assay/samples.py', 1, 'test_ne', 'assert 1+2 != 0+3')
+            ]),
+        ])
+
+    def test_assert_gt(self):
+        result = self.execute(samples.test_gt)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '3\n       is not > 7', [
+                ('assay/samples.py', 1, 'test_gt', 'assert 1+2 > 3+4')
+            ]),
+        ])
+
+    def test_assert_ge(self):
+        result = self.execute(samples.test_ge)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '3\n      is not >= 7', [
+                ('assay/samples.py', 1, 'test_ge', 'assert 1+2 >= 3+4')
+            ]),
+        ])
 
 class ImproveOrderTests(unittest.TestCase):
 

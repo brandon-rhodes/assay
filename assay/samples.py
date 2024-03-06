@@ -91,3 +91,21 @@ def test_raises3():
 def test_raises4():
     with assert_raises(ValueError, 'one message'):
         raise ValueError('another message')
+
+def test_lt():
+    assert 3+4 < 1+2
+
+def test_le():
+    assert 3+4 <= 1+2
+
+def test_eq():
+    assert 1+2 == 3+4
+
+def test_ne():
+    assert 1+2 != 0+3
+
+def test_gt():
+    assert 1+2 > 3+4
+
+def test_ge():
+    assert 1+2 >= 3+4
