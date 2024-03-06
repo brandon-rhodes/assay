@@ -1,7 +1,6 @@
 """Routines to deal with the Python assert statement."""
 
 import dis
-import operator
 import re
 import types
 from sys import version_info
@@ -12,34 +11,21 @@ _case = unittest.TestCase('setUp')
 _case.maxDiff = 2048  # TODO: people should be able to customize this
 _python_version = version_info[:2]
 fancy_comparisons = {
+    '<': _case.assertLess,
+    '<=': _case.assertLessEqual,
     '==': _case.assertEqual,
+    '!=': _case.assertNotEqual,
+    '>': _case.assertGreater,
+    '>=': _case.assertGreaterEqual,
     'in': _case.assertIn,
     'not in': _case.assertNotIn,
     'is': _case.assertIs,
     'is not': _case.assertIsNot,
-    }
-
-plain_comparisons = {
-    '<': operator.__lt__,
-    '<=': operator.__le__,
-    '!=': operator.__ne__,
-    '>': operator.__gt__,
-    '>=': operator.__ge__,
-    'exception match': isinstance,  # no idea whether this is correct
+    'exception match': _case.assertIsInstance,
     'BAD': None,
-    }
+}
 
-def make_comparer(op):
-    if op in fancy_comparisons:
-        return fancy_comparisons[op]
-    def compare(a, b):
-        if not test(a, b):
-            message = '{0!r}\n{1:>15} {2!r}'.format(a, 'is not ' + op, b)
-            raise AssertionError(message)
-    test = plain_comparisons[op]
-    return compare
-
-operator_constants = tuple(make_comparer(op) for op in dis.cmp_op)
+operator_constants = tuple(fancy_comparisons[op] for op in dis.cmp_op)
 
 class op(object):
     """Op code symbols."""

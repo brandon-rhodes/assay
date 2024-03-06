@@ -328,7 +328,7 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(result, [
             '.',
             '.',
-            ('E', 'AssertionError', '2\n      is not != 2', [
+            ('E', 'AssertionError', '2 == 2', [
                 ('assay/samples.py', 1, 'test_fix2(2)', 'assert fix2 != 2'),
                 ]),
             '.',
@@ -338,7 +338,7 @@ class ErrorMessageTests(unittest.TestCase):
         result = self.execute(samples.test_fix3)
         self.assertEqual(result, [
             '.',
-            ('E', 'AssertionError', '1\n      is not != 1', [
+            ('E', 'AssertionError', '1 == 1', [
                 ('assay/samples.py', 1, 'test_fix3(1)', 'assert fix3 != 1'),
                 ]),
             ('F', 'ValueError', 'xyz', [
@@ -404,7 +404,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_assert_lt(self):
         result = self.execute(samples.test_lt)
         self.assertEqual(result, [
-            ('E', 'AssertionError', '7\n       is not < 3', [
+            ('E', 'AssertionError', '7 not less than 3', [
                 ('assay/samples.py', 1, 'test_lt', 'assert 3+4 < 1+2')
             ]),
         ])
@@ -412,7 +412,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_assert_le(self):
         result = self.execute(samples.test_le)
         self.assertEqual(result, [
-            ('E', 'AssertionError', '7\n      is not <= 3', [
+            ('E', 'AssertionError', '7 not less than or equal to 3', [
                 ('assay/samples.py', 1, 'test_le', 'assert 3+4 <= 1+2')
             ]),
         ])
@@ -428,7 +428,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_assert_ne(self):
         result = self.execute(samples.test_ne)
         self.assertEqual(result, [
-            ('E', 'AssertionError', '3\n      is not != 3', [
+            ('E', 'AssertionError', '3 == 3', [
                 ('assay/samples.py', 1, 'test_ne', 'assert 1+2 != 0+3')
             ]),
         ])
@@ -436,7 +436,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_assert_gt(self):
         result = self.execute(samples.test_gt)
         self.assertEqual(result, [
-            ('E', 'AssertionError', '3\n       is not > 7', [
+            ('E', 'AssertionError', '3 not greater than 7', [
                 ('assay/samples.py', 1, 'test_gt', 'assert 1+2 > 3+4')
             ]),
         ])
@@ -444,7 +444,7 @@ class ErrorMessageTests(unittest.TestCase):
     def test_assert_ge(self):
         result = self.execute(samples.test_ge)
         self.assertEqual(result, [
-            ('E', 'AssertionError', '3\n      is not >= 7', [
+            ('E', 'AssertionError', '3 not greater than or equal to 7', [
                 ('assay/samples.py', 1, 'test_ge', 'assert 1+2 >= 3+4')
             ]),
         ])
