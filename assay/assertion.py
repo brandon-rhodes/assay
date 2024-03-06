@@ -1,6 +1,5 @@
 """Routines to deal with the Python assert statement."""
 
-import bdb
 import dis
 import operator
 import re
@@ -192,22 +191,3 @@ def search_for_function(code, candidate, frame, name):
         if get_code(candidate) is code:
             return candidate
     return None
-
-class Debugger(bdb.Bdb):
-    """Bring a function to its first breakpoint, then stop."""
-
-    count = 0
-    limit = None
-
-    def user_line(self, frame):
-        if not self.break_here(frame):
-            self.set_continue()
-            return
-        count = self.count = self.count + 1
-        limit = self.limit
-        if (limit is not None) and (count >= limit):
-            self.code = frame.f_code
-            self.globals = frame.f_globals
-            self.lasti = frame.f_lasti
-            self.locals = frame.f_locals
-            self.set_quit()
