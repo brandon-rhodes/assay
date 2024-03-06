@@ -96,7 +96,7 @@ elif _python_version <= (3,5):
         op.pop_top,             # stack: ...
         ])
 
-elif _python_version < (3,9):
+elif _python_version <= (3,8):
 
     assert_pattern_text = assemble_pattern([
         op.compare_op, b'(.)',
