@@ -154,33 +154,41 @@ def rewrite_asserts_in(function):
     c = get_code(function)
     offset = len(c.co_consts)
     newcode = assert_pattern.sub(replace, c.co_code)
-    if _python_version >= (3,8):
-        code_object = c.replace(
-            co_code=newcode,
-            co_consts=c.co_consts + operator_constants,
-            co_stacksize=c.co_stacksize + 1,
-        )
-    else:
-        args = (
-            c.co_argcount,
-            c.co_nlocals,
-            c.co_stacksize + 1,
-            c.co_flags,
-            newcode,
-            c.co_consts + operator_constants,
-            c.co_names,
-            c.co_varnames,
-            c.co_filename,
-            c.co_name,
-            c.co_firstlineno,
-            c.co_lnotab,
-            c.co_freevars,
-            c.co_cellvars,
-        )
-        if _python_version >= (3,0):
-            args = args[0:1] + (c.co_kwonlyargcount,) + args[1:]
-        code_object = types.CodeType(*args)
+    code_object = code_object_replace(
+        c,
+        new_code=newcode,
+        new_consts=c.co_consts + operator_constants,
+        new_stacksize=c.co_stacksize + 1,
+    )
     set_code(function, code_object)
+
+def code_object_replace(c, new_code, new_consts, new_stacksize):
+    """Emulate `.replace()` method for code objects in older Pythons."""
+    if _python_version >= (3,8):
+        return c.replace(
+            co_code=new_code,
+            co_consts=new_consts,
+            co_stacksize=new_stacksize,
+        )
+    args = (
+        c.co_argcount,
+        c.co_nlocals,
+        new_stacksize,
+        c.co_flags,
+        new_code,
+        new_consts,
+        c.co_names,
+        c.co_varnames,
+        c.co_filename,
+        c.co_name,
+        c.co_firstlineno,
+        c.co_lnotab,
+        c.co_freevars,
+        c.co_cellvars,
+    )
+    if _python_version >= (3,0):
+        args = args[0:1] + (c.co_kwonlyargcount,) + args[1:]
+    return types.CodeType(*args)
 
 def search_for_function(code, candidate, frame, name):
     """Find the function whose code object is `code`, else return None."""
