@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 #
-# A bit fancier than `-m dis`, since here we can pass options.
+# A bit fancier than `-m dis`, since here we can pass options.  This
+# lets me view lots of example bytecode that `assertion.py` needs to
+# match successfully in different versions of Python.
 
 import dis
 import sys
@@ -9,12 +11,12 @@ from os.path import dirname
 def main():
     project_dir = dirname(dirname(__file__))
     sys.path.insert(0, project_dir)
-    from assay import samples as module
-    from assay import assertion as module
-    try:
-        dis.dis(module, show_caches=True)
-    except TypeError:
-        dis.dis(module)
+    from assay import assertion, samples
+    for module in samples, assertion:
+        try:
+            dis.dis(module, show_caches=True)
+        except TypeError:
+            dis.dis(module)
 
 if __name__ == '__main__':
     main()
