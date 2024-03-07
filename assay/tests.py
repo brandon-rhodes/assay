@@ -469,7 +469,7 @@ class ErrorMessageTests(unittest.TestCase):
         result = self.execute(samples.test_is)
         self.assertEqual(result, [
             ('E', 'AssertionError', 'None is not 1', [
-                ('assay/samples.py', 1, 'test_is', 'assert None is 1')
+                ('assay/samples.py', 2, 'test_is', 'assert None is n')
             ]),
         ])
 
