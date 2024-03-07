@@ -32,7 +32,6 @@ comparison_names = (
     'not in',
     'is',
     'is not',
-    'exception match',
 )
 comparison_indexes = {name: i for i, name in enumerate(comparison_names)}
 
@@ -42,13 +41,16 @@ comparison_indexes = {name: i for i, name in enumerate(comparison_names)}
 bytecode_map = {
     b'%c%c' % (op.compare_op, i): comparison_indexes[name]
     for i, name in enumerate(dis.cmp_op)
-    if name != 'BAD'
+    if name not in ('BAD', 'exception match')
 }
 
 # Recent Python versions have special opcodes for some comparisons.
 
 if _python_version >= (3,9):
     bytecode_map[b'%c%c' % (op.contains_op, 0)] = comparison_indexes['in']
+    bytecode_map[b'%c%c' % (op.contains_op, 1)] = comparison_indexes['not in']
+    bytecode_map[b'%c%c' % (op.is_op, 0)] = comparison_indexes['is']
+    bytecode_map[b'%c%c' % (op.is_op, 1)] = comparison_indexes['is not']
 
 # Build a block of constants that offers a rich comparison method for
 # each of the comparisons defined above.

@@ -116,3 +116,12 @@ def test_ge():
 
 def test_in():
     assert 1 in ()
+
+def test_not_in():
+    assert 1 not in (1,)
+
+def test_is():
+    assert None is 1
+
+def test_is_not():
+    assert None is not None
