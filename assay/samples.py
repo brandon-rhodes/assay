@@ -92,6 +92,10 @@ def test_raises4():
     with assert_raises(ValueError, 'one message'):
         raise ValueError('another message')
 
+# We use the same order here that dis.cmp_op used in old versions of Python:
+# ('<', '<=', '==', '!=', '>', '>=',
+#  'in', 'not in', 'is', 'is not', 'exception match', 'BAD')
+
 def test_lt():
     assert 3+4 < 1+2
 
@@ -109,3 +113,6 @@ def test_gt():
 
 def test_ge():
     assert 1+2 >= 3+4
+
+def test_in():
+    assert 1 in ()

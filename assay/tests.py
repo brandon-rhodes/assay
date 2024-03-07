@@ -151,7 +151,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
-        self.assertEqual(len(value), 31)
+        self.assertEqual(len(value), 32)
 
     def test_runner_on_syntax_error(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
@@ -446,6 +446,14 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(result, [
             ('E', 'AssertionError', '3 not greater than or equal to 7', [
                 ('assay/samples.py', 1, 'test_ge', 'assert 1+2 >= 3+4')
+            ]),
+        ])
+
+    def test_assert_in(self):
+        result = self.execute(samples.test_in)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '1 not found in ()', [
+                ('assay/samples.py', 1, 'test_in', 'assert 1 in ()')
             ]),
         ])
 

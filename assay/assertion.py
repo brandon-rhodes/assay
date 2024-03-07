@@ -7,31 +7,68 @@ from sys import version_info
 from types import FunctionType
 from .compatibility import get_code, set_code, unittest
 
-_case = unittest.TestCase('setUp')
-_case.maxDiff = 2048  # TODO: people should be able to customize this
 _python_version = version_info[:2]
-fancy_comparisons = {
-    '<': _case.assertLess,
-    '<=': _case.assertLessEqual,
-    '==': _case.assertEqual,
-    '!=': _case.assertNotEqual,
-    '>': _case.assertGreater,
-    '>=': _case.assertGreaterEqual,
-    'in': _case.assertIn,
-    'not in': _case.assertNotIn,
-    'is': _case.assertIs,
-    'is not': _case.assertIsNot,
-    'exception match': _case.assertIsInstance,
-    'BAD': None,
-}
 
-operator_constants = tuple(fancy_comparisons[op] for op in dis.cmp_op)
+# Turn bytecode opcodes into the attributes of a single object `op`, so
+# we can write them conveniently like `op.compare_op`.
 
-class op(object):
-    """Op code symbols."""
-
+class op(object): pass
 for i, symbol in enumerate(dis.opname):
     setattr(op, symbol.lower(), i)
+
+# The master sequence of comparisons that we rewrite.  Their integer
+# indexes are important, because indexes are how a function's bytecode
+# reaches into its table of constants, which we will be extending with a
+# block of methods in the same order as the comparisons are listed here.
+
+comparison_names = (
+    '<',
+    '<=',
+    '==',
+    '!=',
+    '>',
+    '>=',
+    'in',
+    'not in',
+    'is',
+    'is not',
+    'exception match',
+)
+comparison_indexes = {name: i for i, name in enumerate(comparison_names)}
+
+# Figure out what each comparison will look like in bytecode, using the
+# table of comparisons built-in to Python's `dis` module.
+
+bytecode_map = {
+    b'%c%c' % (op.compare_op, i): comparison_indexes[name]
+    for i, name in enumerate(dis.cmp_op)
+    if name != 'BAD'
+}
+
+# Recent Python versions have special opcodes for some comparisons.
+
+if _python_version >= (3,9):
+    bytecode_map[b'%c%c' % (op.contains_op, 0)] = comparison_indexes['in']
+
+# Build a block of constants that offers a rich comparison method for
+# each of the comparisons defined above.
+
+_case = unittest.TestCase('setUp')
+_case.maxDiff = 2048  # TODO: people should be able to customize this
+
+comparison_constants = (
+    _case.assertLess,
+    _case.assertLessEqual,
+    _case.assertEqual,
+    _case.assertNotEqual,
+    _case.assertGreater,
+    _case.assertGreaterEqual,
+    _case.assertIn,
+    _case.assertNotIn,
+    _case.assertIs,
+    _case.assertIsNot,
+    _case.assertIsInstance,
+)
 
 # How to assemble regular expressions and replacement strings.
 
@@ -46,30 +83,18 @@ def assemble_pattern(things):
     return b''.join((t if isinstance(t, bytes) else re.escape(chr(t)))
                     for t in things)
 
+# Assemble a regular expression pattern for each comparison.
+
+operator_patterns = {
+    assemble_pattern(pattern) for pattern in bytecode_map
+}
+
 # How an "assert" statement looks in each version of Python.
 
-if _python_version <= (2,6):
+if _python_version <= (3,5):
 
     assert_pattern_text = assemble_pattern([
-        op.compare_op, b'(.)', 0,
-        op.jump_if_true, b'..',
-        op.pop_top,
-        op.load_global, b'(..)',
-        op.raise_varargs, 1, 0,
-        op.pop_top,
-        ])
-
-    replacement = assemble_replacement([
-        op.load_const, b'%%',   # stack: ... op1 op2 function
-        op.rot_three,           # stack: ... function op1 op2
-        op.call_function, 2, 0, # stack: ... return_value
-        op.pop_top,             # stack: ...
-        ])
-
-elif _python_version <= (3,5):
-
-    assert_pattern_text = assemble_pattern([
-        op.compare_op, b'(.)', 0,
+        b'(', b'|'.join(operator_patterns), b')', 0,
         op.pop_jump_if_true, b'..',
         op.load_global, b'(..)',
         op.raise_varargs, 1, 0,
@@ -85,7 +110,7 @@ elif _python_version <= (3,5):
 elif _python_version <= (3,8):
 
     assert_pattern_text = assemble_pattern([
-        op.compare_op, b'(.)',
+        b'(', b'|'.join(operator_patterns), b')',
         b'(?:', op.extended_arg, b'.)?',
         op.pop_jump_if_true, b'.',
         op.load_global, b'(.)',
@@ -101,8 +126,10 @@ elif _python_version <= (3,8):
 
 else:
 
+
+
     assert_pattern_text = assemble_pattern([
-        op.compare_op, b'(.)',
+        b'(', b'|'.join(operator_patterns), b')',
         b'(?:', op.extended_arg, b'.)?',
         op.pop_jump_if_true, b'.',
         op.load_assertion_error, b'.',
@@ -124,14 +151,13 @@ assert_pattern = re.compile(assert_pattern_text, re.S)
 def rewrite_asserts_in(function):
 
     def replace(match):
-        # TODO: if there's a second group in the match, should we verify
-        # that it really loads `AssertionError`?
-        compare_op = match.group(1)
+        comparison_bytecode = match.group(1)
+        comparison_index = bytecode_map[comparison_bytecode]
         if _python_version <= (3,5):
-            msb, lsb = divmod(offset + ord(compare_op), 256)
+            msb, lsb = divmod(offset + comparison_index, 256)
             code = replacement.replace(b'%%', chr(lsb) + chr(msb))
         else:
-            code = replacement.replace(b'%%', chr(offset + ord(compare_op)))
+            code = replacement.replace(b'%%', chr(offset + comparison_index))
         short = len(match.group(0)) - len(code)
         if short:
             code += chr(op.nop) * short
@@ -143,7 +169,7 @@ def rewrite_asserts_in(function):
     code_object = code_object_replace(
         c,
         new_code=newcode,
-        new_consts=c.co_consts + operator_constants,
+        new_consts=c.co_consts + comparison_constants,
         new_stacksize=c.co_stacksize + 1,
     )
     set_code(function, code_object)
