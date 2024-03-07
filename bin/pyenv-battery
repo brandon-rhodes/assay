@@ -16,6 +16,7 @@ else
         echo
         echo '********  Python version' $v '  ********'
         echo
-        PYENV_VERSION=$v pyenv exec python -m assay.tests -v
+        PYENV_VERSION=$v pyenv exec python -m assay.tests -v ||
+            (echo "(The error above is from Python version $v)" && exit 1)
     done
 fi
