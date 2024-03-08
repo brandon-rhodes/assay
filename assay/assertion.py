@@ -52,6 +52,12 @@ if _python_version >= (3,9):
     bytecode_map[b'%c%c' % (op.is_op, 0)] = comparison_indexes['is']
     bytecode_map[b'%c%c' % (op.is_op, 1)] = comparison_indexes['is not']
 
+# Assemble a regular expression pattern for each comparison.
+
+operator_patterns = {
+    re.escape(bytecode) for bytecode in bytecode_map
+}
+
 # Build a block of constants that offers a rich comparison method for
 # each of the comparisons defined above.
 
@@ -84,12 +90,6 @@ def assemble_replacement(things):
 def assemble_pattern(things):
     return b''.join((t if isinstance(t, bytes) else re.escape(chr(t)))
                     for t in things)
-
-# Assemble a regular expression pattern for each comparison.
-
-operator_patterns = {
-    assemble_pattern(pattern) for pattern in bytecode_map
-}
 
 # How an "assert" statement looks in each version of Python.
 
@@ -193,11 +193,11 @@ def rewrite_asserts_in(function):
         comparison_bytecode = match.group(1)
         comparison_key = comparison_bytecode[:2]  # trim off cache, if any
         comparison_index = bytecode_map[comparison_key]
-        if _python_version <= (3,5):
+        if _python_version >= (3,6):
+            code = replacement.replace(b'%%', chr(offset + comparison_index))
+        else:
             msb, lsb = divmod(offset + comparison_index, 256)
             code = replacement.replace(b'%%', chr(lsb) + chr(msb))
-        else:
-            code = replacement.replace(b'%%', chr(offset + comparison_index))
         short = len(match.group(0)) - len(code)
         if short < 0:
             raise ValueError('Internal error in Assay: bytecode overflow')
