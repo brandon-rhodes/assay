@@ -21,6 +21,7 @@ from .worker import Worker
 _python3 = sys.version_info >= (3,)
 _python33 = sys.version_info >= (3, 3)
 _python38 = sys.version_info >= (3, 8)
+_python3_11 = sys.version_info >= (3, 11)
 
 # Tests.
 
@@ -492,8 +493,12 @@ class ErrorMessageTests(unittest.TestCase):
 
     def test_assert_is_not_None(self):
         result = self.execute(samples.test_is_not_None)
+        if _python3_11:
+            message = 'unexpectedly None'
+        else:
+            message = 'unexpectedly identical: None'
         self.assertEqual(result, [
-            ('E', 'AssertionError', 'unexpectedly identical: None', [
+            ('E', 'AssertionError', message, [
                 ('assay/samples.py', 2, 'test_is_not_None',
                  'assert a is not None')
             ]),

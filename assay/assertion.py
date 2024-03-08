@@ -32,6 +32,8 @@ comparison_names = (
     'not in',
     'is',
     'is not',
+    'is None',
+    'is not None',
 )
 comparison_indexes = {name: i for i, name in enumerate(comparison_names)}
 
@@ -51,6 +53,14 @@ if _python_version >= (3,9):
     bytecode_map[b'%c%c' % (op.contains_op, 1)] = comparison_indexes['not in']
     bytecode_map[b'%c%c' % (op.is_op, 0)] = comparison_indexes['is']
     bytecode_map[b'%c%c' % (op.is_op, 1)] = comparison_indexes['is not']
+
+if _python_version >= (3,11):
+    bytecode_map[b'%c%c' % (op.pop_jump_forward_if_none, 2)] = (
+        comparison_indexes['is None']
+    )
+    bytecode_map[b'%c%c' % (op.pop_jump_forward_if_not_none, 2)] = (
+        comparison_indexes['is not None']
+    )
 
 # Assemble a regular expression pattern for each comparison.
 
@@ -75,7 +85,8 @@ comparison_constants = (
     _case.assertNotIn,
     _case.assertIs,
     _case.assertIsNot,
-    _case.assertIsInstance,
+    _case.assertIsNone,
+    _case.assertIsNotNone,
 )
 
 # How to assemble regular expressions and replacement strings.
@@ -93,12 +104,15 @@ def assemble_pattern(things):
 
 # How an "assert" statement looks in each version of Python.
 
-class SetItemComparator(object):
+class Comparator(object):
     def __init__(self, comparison_method):
         self.comparison_method = comparison_method
 
     def __setitem__(self, value2, value1):
         self.comparison_method(value1, value2)
+
+    def __delitem__(self, value):
+        self.comparison_method(value)
 
 if _python_version <= (3,5):
 
@@ -152,35 +166,69 @@ elif _python_version <= (3,10):
 
 else:
 
+    # Some comparisons now use JUMP opcodes that themselves perform a
+    # comparison instead of being preceded by a separate comparison
+    # opcode, so we need to handle assert stanzas and replacements of
+    # different lengths.
+
+    replacement_binary = assemble_replacement([
+        op.load_const, b'%%',   # stack: *rest op1 op2 myobj
+        op.swap, 2,             # stack: *rest myobj op1 op2
+        op.store_subscr, 0,     # stack: *rest
+        0, 0,                   # (cache line for STORE_SUBSCR)
+    ])
+
+    replacement_unary = assemble_replacement([
+        op.load_const, b'%%',   # stack: *rest op myobj
+        op.swap, 2,             # stack: *rest myobj op
+        op.delete_subscr, 0,    # stack: *rest
+    ])
+
+    operator_patterns = set()
+    replacements = {}
+
+    for bytecode, i in bytecode_map.items():
+        operator = bytecode[0]
+
+        if operator == op.compare_op:
+            pattern = assemble_pattern([
+                bytecode,       # COMPARE_OP takes two cache lines
+                b'....',
+                op.pop_jump_forward_if_true, 2,
+                op.load_assertion_error, 0,
+                op.raise_varargs, 1,
+            ])
+            replacement = replacement_binary
+
+        elif operator in (op.contains_op, op.is_op):
+            pattern = assemble_pattern([
+                bytecode,       # no cache lines
+                op.pop_jump_forward_if_true, 2,
+                op.load_assertion_error, 0,
+                op.raise_varargs, 1,
+            ])
+            replacement = replacement_binary
+
+        else:
+            pattern = assemble_pattern([
+                bytecode,       # the bytecode is itself the conditional jump
+                op.load_assertion_error, 0,
+                op.raise_varargs, 1,
+            ])
+            replacement = replacement_unary
+
+        operator_patterns.add(pattern)
+        replacements[i] = replacement
+
+    assert_pattern_text = b'(' + b'|'.join(operator_patterns) + b')'
+
+    # Wrap comparison methods in objects that implement the __setitem__
+    # and __delitem__ methods that will be invoked by the replacement
+    # code above.
+
     comparison_constants = tuple(
-        SetItemComparator(method) for method in comparison_constants
+        Comparator(method) for method in comparison_constants
     )
-
-    def add_cache(pattern):
-        if pattern[0] == op.compare_op:
-            pattern += b'....'
-        return pattern
-
-    #               4 POP_JUMP_FORWARD_IF_NOT_NONE     2 (to 10)
-    #               6 LOAD_ASSERTION_ERROR
-    #               8 RAISE_VARARGS            1
-
-    operator_patterns = {add_cache(p) for p in operator_patterns}
-
-    assert_pattern_text = assemble_pattern([
-        b'(', b'|'.join(operator_patterns), b')',
-        op.pop_jump_forward_if_true, 2,
-        op.load_assertion_error, 0,
-        op.raise_varargs, 1,
-    ])
-
-    replacement = assemble_replacement([
-        op.load_const, b'%%',  # stack: *rest op1 op2 myobj
-        op.swap, 2,            # stack: *rest myobj op1 op2
-        op.store_subscr, 0,    # stack: *rest None
-        0, 0,                  # (cache line for STORE_SUBSCR)
-        #op.pop_top, 0,         # stack: *rest
-    ])
 
 # Note that "re.S" is crucial when compiling this pattern, as a byte we
 # are trying to match with "." might happen to have the numeric value of
@@ -191,9 +239,12 @@ def rewrite_asserts_in(function):
 
     def replace(match):
         comparison_bytecode = match.group(1)
-        comparison_key = comparison_bytecode[:2]  # trim off cache, if any
+        comparison_key = comparison_bytecode[:2]  # comparison instruction
         comparison_index = bytecode_map[comparison_key]
-        if _python_version >= (3,6):
+        if _python_version >= (3,11):
+            code = replacements[comparison_index]
+            code = code.replace(b'%%', chr(offset + comparison_index))
+        elif _python_version >= (3,6):
             code = replacement.replace(b'%%', chr(offset + comparison_index))
         else:
             msb, lsb = divmod(offset + comparison_index, 256)
