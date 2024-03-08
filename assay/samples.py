@@ -127,3 +127,11 @@ def test_is():
 def test_is_not():
     a = 1
     assert a is not a
+
+def test_is_None():
+    a = 1
+    assert a is None
+
+def test_is_not_None():
+    a = None
+    assert a is not None

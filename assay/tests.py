@@ -151,7 +151,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
-        self.assertEqual(len(value), 35)
+        self.assertEqual(len(value), 37)
 
     def test_runner_on_syntax_error(self):
         with tempfile.NamedTemporaryFile(suffix='.py') as f:
@@ -479,6 +479,23 @@ class ErrorMessageTests(unittest.TestCase):
             ('E', 'AssertionError', 'unexpectedly identical: 1', [
                 ('assay/samples.py', 2, 'test_is_not',
                  'assert a is not a')
+            ]),
+        ])
+
+    def test_assert_is_None(self):
+        result = self.execute(samples.test_is_None)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', '1 is not None', [
+                ('assay/samples.py', 2, 'test_is_None', 'assert a is None')
+            ]),
+        ])
+
+    def test_assert_is_not_None(self):
+        result = self.execute(samples.test_is_not_None)
+        self.assertEqual(result, [
+            ('E', 'AssertionError', 'unexpectedly identical: None', [
+                ('assay/samples.py', 2, 'test_is_not_None',
+                 'assert a is not None')
             ]),
         ])
 
