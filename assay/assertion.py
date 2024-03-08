@@ -139,7 +139,7 @@ elif _python_version <= (3,10):
         b'(', b'|'.join(operator_patterns), b')',
         b'(?:', op.extended_arg, b'.)?',
         op.pop_jump_if_true, b'.',
-        op.load_assertion_error, b'.',
+        op.load_assertion_error, 0,
         op.raise_varargs, 1,
     ])
 
@@ -170,7 +170,7 @@ else:
     assert_pattern_text = assemble_pattern([
         b'(', b'|'.join(operator_patterns), b')',
         op.pop_jump_forward_if_true, 2,
-        op.load_assertion_error, b'.',
+        op.load_assertion_error, 0,
         op.raise_varargs, 1,
     ])
 
