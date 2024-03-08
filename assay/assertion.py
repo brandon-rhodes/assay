@@ -161,6 +161,10 @@ else:
             pattern += b'....'
         return pattern
 
+    #               4 POP_JUMP_FORWARD_IF_NOT_NONE     2 (to 10)
+    #               6 LOAD_ASSERTION_ERROR
+    #               8 RAISE_VARARGS            1
+
     operator_patterns = {add_cache(p) for p in operator_patterns}
 
     assert_pattern_text = assemble_pattern([

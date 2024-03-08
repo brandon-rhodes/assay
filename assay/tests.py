@@ -468,17 +468,17 @@ class ErrorMessageTests(unittest.TestCase):
     def test_assert_is(self):
         result = self.execute(samples.test_is)
         self.assertEqual(result, [
-            ('E', 'AssertionError', 'None is not 1', [
-                ('assay/samples.py', 2, 'test_is', 'assert None is n')
+            ('E', 'AssertionError', '1 is not 2', [
+                ('assay/samples.py', 2, 'test_is', 'assert a is b')
             ]),
         ])
 
     def test_assert_is_not(self):
         result = self.execute(samples.test_is_not)
         self.assertEqual(result, [
-            ('E', 'AssertionError', 'unexpectedly identical: None', [
-                ('assay/samples.py', 1, 'test_is_not',
-                 'assert None is not None')
+            ('E', 'AssertionError', 'unexpectedly identical: 1', [
+                ('assay/samples.py', 2, 'test_is_not',
+                 'assert a is not a')
             ]),
         ])
 

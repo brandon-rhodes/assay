@@ -121,8 +121,9 @@ def test_not_in():
     assert 1 not in (1,)
 
 def test_is():
-    n = 1
-    assert None is n
+    a, b = 1, 2
+    assert a is b
 
 def test_is_not():
-    assert None is not None
+    a = 1
+    assert a is not a
