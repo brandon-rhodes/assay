@@ -93,6 +93,13 @@ operator_patterns = {
 
 # How an "assert" statement looks in each version of Python.
 
+class SetItemComparator(object):
+    def __init__(self, comparison_method):
+        self.comparison_method = comparison_method
+
+    def __setitem__(self, value2, value1):
+        self.comparison_method(value1, value2)
+
 if _python_version <= (3,5):
 
     assert_pattern_text = assemble_pattern([
@@ -126,9 +133,7 @@ elif _python_version <= (3,8):
         op.pop_top, 0,          # stack: ...
     ])
 
-else:
-
-
+elif _python_version <= (3,10):
 
     assert_pattern_text = assemble_pattern([
         b'(', b'|'.join(operator_patterns), b')',
@@ -145,6 +150,34 @@ else:
         op.pop_top, 0,          # stack: ...
     ])
 
+else:
+
+    comparison_constants = tuple(
+        SetItemComparator(method) for method in comparison_constants
+    )
+
+    def add_cache(pattern):
+        if pattern[0] == op.compare_op:
+            pattern += b'....'
+        return pattern
+
+    operator_patterns = {add_cache(p) for p in operator_patterns}
+
+    assert_pattern_text = assemble_pattern([
+        b'(', b'|'.join(operator_patterns), b')',
+        op.pop_jump_forward_if_true, 2,
+        op.load_assertion_error, b'.',
+        op.raise_varargs, 1,
+    ])
+
+    replacement = assemble_replacement([
+        op.load_const, b'%%',  # stack: *rest op1 op2 myobj
+        op.swap, 2,            # stack: *rest myobj op1 op2
+        op.store_subscr, 0,    # stack: *rest None
+        0, 0,                  # (cache line for STORE_SUBSCR)
+        #op.pop_top, 0,         # stack: *rest
+    ])
+
 # Note that "re.S" is crucial when compiling this pattern, as a byte we
 # are trying to match with "." might happen to have the numeric value of
 # an ASCII newline.
@@ -154,14 +187,17 @@ def rewrite_asserts_in(function):
 
     def replace(match):
         comparison_bytecode = match.group(1)
-        comparison_index = bytecode_map[comparison_bytecode]
+        comparison_key = comparison_bytecode[:2]  # trim off cache, if any
+        comparison_index = bytecode_map[comparison_key]
         if _python_version <= (3,5):
             msb, lsb = divmod(offset + comparison_index, 256)
             code = replacement.replace(b'%%', chr(lsb) + chr(msb))
         else:
             code = replacement.replace(b'%%', chr(offset + comparison_index))
         short = len(match.group(0)) - len(code)
-        if short:
+        if short < 0:
+            raise ValueError('Internal error in Assay: bytecode overflow')
+        if short > 0:
             code += chr(op.nop) * short
         return code
 
