@@ -1,5 +1,8 @@
 """Routines to deal with the Python assert statement."""
 
+# Is this becoming complicated enough that I should split it into a
+# separate module for each version of Python?
+
 import dis
 import re
 import types
@@ -40,11 +43,18 @@ comparison_indexes = {name: i for i, name in enumerate(comparison_names)}
 # Figure out what each comparison will look like in bytecode, using the
 # table of comparisons built-in to Python's `dis` module.
 
-bytecode_map = {
-    b'%c%c' % (op.compare_op, i): comparison_indexes[name]
-    for i, name in enumerate(dis.cmp_op)
-    if name not in ('BAD', 'exception match')
-}
+if _python_version == (3,12):
+    bytecode_map = {
+        b'%c%c' % (op.compare_op, i << 4): comparison_indexes[name]
+        for i, name in enumerate(dis.cmp_op)
+        if name not in ('BAD', 'exception match')
+    }
+else:
+    bytecode_map = {
+        b'%c%c' % (op.compare_op, i): comparison_indexes[name]
+        for i, name in enumerate(dis.cmp_op)
+        if name not in ('BAD', 'exception match')
+    }
 
 # Recent Python versions have special opcodes for some comparisons.
 
@@ -55,12 +65,16 @@ if _python_version >= (3,9):
     bytecode_map[b'%c%c' % (op.is_op, 1)] = comparison_indexes['is not']
 
 if _python_version >= (3,11):
-    bytecode_map[b'%c%c' % (op.pop_jump_forward_if_none, 2)] = (
-        comparison_indexes['is None']
-    )
-    bytecode_map[b'%c%c' % (op.pop_jump_forward_if_not_none, 2)] = (
-        comparison_indexes['is not None']
-    )
+    if _python_version == (3,11):
+        jump_if_none = op.pop_jump_forward_if_none
+        jump_if_not_none = op.pop_jump_forward_if_not_none
+    else:
+        jump_if_none = op.pop_jump_if_none
+        jump_if_not_none = op.pop_jump_if_not_none
+
+    bytecode_map[b'%c%c' % (jump_if_none, 2)] = comparison_indexes['is None']
+    bytecode_map[b'%c%c' % (jump_if_not_none, 2)] = comparison_indexes[
+        'is not None']
 
 # Assemble a regular expression pattern for each comparison.
 
@@ -102,7 +116,8 @@ def assemble_pattern(things):
     return b''.join((t if isinstance(t, bytes) else re.escape(chr(t)))
                     for t in things)
 
-# How an "assert" statement looks in each version of Python.
+# How an "assert" statement looks in each version of Python, along with
+# a working replacement for it.
 
 class Comparator(object):
     def __init__(self, comparison_method):
@@ -113,6 +128,16 @@ class Comparator(object):
 
     def __delitem__(self, value):
         self.comparison_method(value)
+
+if _python_version == (3,12):
+    def clear_bits(bytecode):
+        opcode, operand = bytecode
+        if opcode == op.compare_op:
+            operand &= 0b11110000
+        return b'%c%c' % (opcode, operand)
+else:
+    def clear_bits(bytecode):
+        return bytecode
 
 if _python_version <= (3,5):
 
@@ -187,23 +212,46 @@ else:
     operator_patterns = set()
     replacements = {}
 
+    if _python_version == (3,11):
+        jump_if_true = op.pop_jump_forward_if_true
+    else:
+        jump_if_true = op.pop_jump_if_true
+
+    _lower_bits = range(16)
+
+    def escape_compare_bytecode(bytecode):
+        opcode = re.escape(bytecode[0:1])
+        if _python_version == (3,12):
+            byte = bytecode[1]
+            characters = list(chr(byte | b) for b in _lower_bits)
+            operation = b'[' + b''.join(
+                (b'\\' + c if c in b']\\' else c) for c in characters
+            )+ b']'
+        else:
+            operation = re.escape(bytecode[1:2])
+        return opcode + operation
+
+    def expand_cmp_op(cmp):
+        """Build an RE that matches every possible bitting of `cmp`."""
+
     for bytecode, i in bytecode_map.items():
         operator = bytecode[0]
 
         if operator == op.compare_op:
+            cache = b'....' if _python_version == (3,11) else b'..'
             pattern = assemble_pattern([
-                bytecode,       # COMPARE_OP takes two cache lines
-                b'....',
-                op.pop_jump_forward_if_true, 2,
-                op.load_assertion_error, 0,
+                escape_compare_bytecode(bytecode),
+                cache,
+                jump_if_true, 2,
+                op.load_assertion_error, b'.',
                 op.raise_varargs, 1,
             ])
             replacement = replacement_binary
 
         elif operator in (op.contains_op, op.is_op):
             pattern = assemble_pattern([
-                bytecode,       # no cache lines
-                op.pop_jump_forward_if_true, 2,
+                re.escape(bytecode),  # no cache lines
+                jump_if_true, 2,
                 op.load_assertion_error, 0,
                 op.raise_varargs, 1,
             ])
@@ -211,7 +259,7 @@ else:
 
         else:
             pattern = assemble_pattern([
-                bytecode,       # the bytecode is itself the conditional jump
+                re.escape(bytecode),  # bytecode is itself the conditional jump
                 op.load_assertion_error, 0,
                 op.raise_varargs, 1,
             ])
@@ -240,6 +288,7 @@ def rewrite_asserts_in(function):
     def replace(match):
         comparison_bytecode = match.group(1)
         comparison_key = comparison_bytecode[:2]  # comparison instruction
+        comparison_key = clear_bits(comparison_key)
         comparison_index = bytecode_map[comparison_key]
         if _python_version >= (3,11):
             code = replacements[comparison_index]
