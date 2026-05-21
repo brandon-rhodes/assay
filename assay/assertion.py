@@ -189,6 +189,14 @@ elif _python_version <= (3,10):
         op.pop_top, 0,          # stack: ...
     ])
 
+elif not hasattr(op, 'load_assertion_error'):
+
+    # Python 3.14 replaced LOAD_ASSERTION_ERROR with LOAD_COMMON_CONSTANT.
+    # Avoid attempting assert rewriting until this module learns the new
+    # bytecode shape; normal Python AssertionError handling will still work.
+
+    assert_pattern_text = b'(?!)'
+
 else:
 
     # Some comparisons now use JUMP opcodes that themselves perform a
