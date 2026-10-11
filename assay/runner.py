@@ -37,7 +37,9 @@ def capture_stdout_stderr(generator, *args):
                 yield item + (out.getvalue(), err.getvalue())
             else:
                 yield item
+            out.seek(0)
             out.truncate(0)
+            err.seek(0)
             err.truncate(0)
     finally:
         sys.stdout = oldout

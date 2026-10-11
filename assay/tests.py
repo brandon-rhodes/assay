@@ -14,7 +14,7 @@ from . import samples
 from .compatibility import get_code, unittest
 from .discovery import interpret_argument
 from .importation import improve_order, list_module_paths
-from .runner import run_tests_of, run_test
+from .runner import capture_stdout_stderr, run_tests_of, run_test
 from .samples import mul
 from .worker import Worker
 
@@ -149,6 +149,46 @@ class DiscoveryTests(unittest.TestCase):
 class RunnerTests(unittest.TestCase):
 
     maxDiff = 9999
+
+    def test_captured_output_starts_at_zero_for_each_result(self):
+        def results():
+            for out, err in [('long stdout', 'long stderr'), ('x', 'y'), ('', '')]:
+                sys.stdout.write(out)
+                sys.stderr.write(err)
+                yield ('E',)
+
+        self.assertEqual(list(capture_stdout_stderr(results)), [
+            ('E', 'long stdout', 'long stderr'),
+            ('E', 'x', 'y'),
+            ('E', '', ''),
+        ])
+
+    def test_success_output_does_not_pad_later_failure(self):
+        def results():
+            sys.stdout.write('successful output')
+            sys.stderr.write('successful error output')
+            yield '.'
+            sys.stdout.write('failure output')
+            sys.stderr.write('failure error output')
+            yield ('E',)
+
+        self.assertEqual(list(capture_stdout_stderr(results)), [
+            '.', ('E', 'failure output', 'failure error output'),
+        ])
+
+    def test_capture_restores_output_when_generator_closes(self):
+        original_out, original_err = sys.stdout, sys.stderr
+
+        def results():
+            yield ('E',)
+            yield ('E',)
+
+        captured = capture_stdout_stderr(results)
+        next(captured)
+        captured.close()
+
+        self.assertIs(sys.stdout, original_out)
+        self.assertIs(sys.stderr, original_err)
 
     def test_runner_on_good_module(self):
         value = list(run_tests_of('assay.samples'))
